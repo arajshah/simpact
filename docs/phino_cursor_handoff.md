@@ -161,9 +161,15 @@ Ran because the research owner asked for a bounded learning comparison on existi
 - Spatial diagnostic, no retraining: `scripts/phino_spatial_diagnostic.py` and `docs/results/phino_action_learning_v2/spatial_diagnostic/`. The fine-tuned 4×4 probe directory was already complete. On the matched subsets, four interventions, leave-one-geometry-out nMAE is frozen pooled 0.76/0.86, fine-tuned pooled about 0.60/0.60, frozen 4×4 0.67/0.59, fine-tuned 4×4 about 0.53/0.49, tracker 0.04/0.12. Both seeds agree on those averages. Cow mass does not improve when the frozen 4×4 readout is fine-tuned.
 - Among the frozen and clip-fine-tuned readouts, the best pooled position R² is 0.20 (static-trained 4×4 control: 0.23). Within a held-out geometry it is negative, and the seeds improve it together in only 7 of 16 cells on the larger geometries. The 4×4 readout and the contrastive update each recover part of the mass/friction signal, and the tracker gap remains. The pattern fits neither a pure pooling bottleneck nor a pure objective failure. At four actions, both clip seeds reduce spatial-readout nMAE on 4/5 geometries for mass and 2/5 for friction. The full per-geometry tables and paired-count CSV are in `docs/results/phino_action_learning_v2/spatial_diagnostic/`. The training objective was not varied with the readout held fixed, so the residual gap cannot be attributed to that objective.
 
+## Milestone status: objective baselines (done, Nov 6, 2026)
+
+Phase 1 keeps the existing trajectory-similarity checkpoints and compares them with two matched baselines on `data/phino_simpact_v3obs_v2`: generic instance-discrimination InfoNCE, and direct regression of log mass and log friction. Seeds 0 and 1, the same 400-step budget, and the same leave-one-geometry-out folds. Evaluation is the existing pooled and 4×4 probes. No new physics and no PHINO retraining. Full write-up: `docs/phino_experiment_log.md`. Tables: `docs/results/phino_action_baselines_v1/`. Checkpoints and feature banks stay in `results/phino_action_baselines_v1/` on Brown.
+
+Trajectory similarity does not have a consistent advantage over generic InfoNCE. At four interventions the geometry-level paired difference is about 0.01 nMAE or smaller, and the seeds disagree in sign on several geometries. Direct supervision is not uniformly better: it lowers cow mass error and raises cube and white-carton mass error. The image-position tracker remains near 0.04 / 0.12.
+
 ## Next task
 
-Do not generate a new physics grid, and do not start another training sweep, until R1–R6 in the spec's §10 are approved and a re-registered Stage 3 gate passes. On these clips the image-position tracker remains the ceiling. Another pooled fine-tune, or another linear 4×4 readout of the same backbones, is not the indicated next measurement.
+Do not start Phase 2. Do not generate a new physics grid, and do not launch another objective or readout sweep, until the research owner has reviewed this comparison. R1–R6 in the spec's §10 are still required before any new physics protocol. The gain over frozen DINOv2 is shared with generic contrastive fine-tuning, so it should not be attributed to the trajectory-similarity target.
 
 ## Handoff protocol
 

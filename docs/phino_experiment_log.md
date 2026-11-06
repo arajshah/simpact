@@ -378,5 +378,72 @@ Changing the frozen readout improves the aggregate predictions, so pooling contr
 
 **Added limitations.** White carton has six configurations. Two- and three-intervention means use the representative subsets listed above. Within-geometry position R² is undefined on constant toss channels and is unstable at n = 6. The 4×4 grid is a linear average of patch tokens, not a learned spatial head.
 
-
 **Paired fold audit (Nov 6).** From the unrounded LOGO fold nMAEs in [diagnostic.json](results/phino_action_learning_v2/spatial_diagnostic/diagnostic.json), [both-seed counts](results/phino_action_learning_v2/spatial_diagnostic/paired_fold_counts.csv) compare each clip-fine-tuned 4×4 seed against frozen 4×4 for the same target, subset design and held-out geometry. At 1 / 2 / 3 / 4 interventions both seeds lower mass error on 3 / 3 / 4 / 4 of five geometries; friction on 1 / 2 / 5 / 2. Counts are descriptive, not independent replications or statistical tests. In particular the three-action result is for one specific subset. No new probe fit or change to the Brown outputs was required.
+
+## 2026-11-06: Phase 1 objective baselines
+
+**Question.** On the same action-conditioned clips, does trajectory-similarity supervision have a consistent advantage over generic instance-discrimination InfoNCE, and how does either compare with fine-tuning that directly predicts log mass and log friction?
+
+**Hypothesis.** If the earlier gain over frozen DINOv2 came from the trajectory target, trajectory similarity should beat a matched InfoNCE run that sees the same two augmented views and no trajectory target. Direct supervision is a different comparison: it is allowed to see the probe's label family on the training geometries, so it can beat both contrastive methods without that being evidence for a self-supervised objective. This does not reopen the Stage 3 gate and does not justify a new physics grid.
+
+**Data and code.**
+- Observations: the existing `data/phino_simpact_v3obs_v2/` clips. No new physics. The probe set is the same 292 configurations with all four actions.
+- Trajectory-similarity checkpoints and their pooled and 4×4 probes were reused from `results/phino_action_learning_v2/`. They were not retrained.
+- New runs: `scripts/phino_action_contrastive_train.py --objective instance` and `--objective regression`, launched by `scripts/run_phino_action_baselines.sh`. Outputs: `results/phino_action_baselines_v1/` (Brown only). Committed tables: [`docs/results/phino_action_baselines_v1/`](./results/phino_action_baselines_v1/).
+- Twenty new runs, all 400 steps, training time 122 minutes in total (4.1–9.9 minutes each). Losses decreased on every run and stayed finite. InfoNCE final losses were 0.26–0.81. Regression final mean squared error on the standardized labels was 0.24–0.49.
+
+**Protocol.** Matched to the trajectory run: DINOv2-B/14, last 4 blocks trainable, batch of 24 clips, one intervention per step, backbone learning rate 1e-5, head learning rate 1e-3, weight decay 0.05, 40-step warmup, two augmented views with shared colour jitter and translation and no flips. Seeds 0 and 1. Each fold excludes its test geometry from training rows, from the trajectory normalizer (InfoNCE does not fit one), and from the regression label standardizer. No hyperparameter was chosen on a test geometry. The ridge probe is unchanged, including its training-only grouped penalty selection.
+- **InfoNCE.** Symmetric cross-entropy. The positive pair is the two views of one clip. Other clips in the batch are negatives. Temperature is the same learnable parameter as SoftInfoNCE, initialized at 0.07. The loss function does not accept a similarity matrix.
+- **Regression.** Mean squared error on log mass and log friction, standardized by the mean and population standard deviation of the unique training configurations. The head has the contrastive head's hidden width, is not L2-normalized, and is discarded before the probe.
+- **Evaluation.** Frozen pooled features and a 4×4 average of patch tokens, then the same standardized dual ridge. The primary endpoint is leave-one-geometry-out nMAE at all four interventions. That is one intervention set, so the paired differences do not average dependent subsets. Scaling curves still average subsets of a given size, and those averages are descriptive only. For the 4×4 readout, counts 2 and 3 use the published representative subsets, not every combination. The image-position tracker was recomputed in the new probe files and matched the previous files.
+- **Paired summary.** For each held-out geometry, average the two seeds, then report the mean, the range across the five geometries, how many geometries have both seeds in the same direction, and the mean absolute seed difference. Five geometries are the unit. Subset counts are not.
+
+**Results.** Sample-weighted leave-one-geometry-out nMAE at four interventions (mass / friction; learned methods are seed 0 / seed 1):
+
+| Representation | Pooled | 4×4 |
+|---|---|---|
+| Frozen DINOv2 | 0.76 / 0.86 | 0.67 / 0.59 |
+| Trajectory similarity | 0.61 / 0.60, 0.60 / 0.61 | 0.55 / 0.50, 0.51 / 0.48 |
+| Generic InfoNCE | 0.65 / 0.63, 0.59 / 0.69 | 0.57 / 0.50, 0.53 / 0.53 |
+| Supervised regression | 0.58 / 0.61, 0.51 / 0.59 | 0.51 / 0.54, 0.45 / 0.49 |
+| Image-position tracker | 0.04 / 0.12 | 0.04 / 0.12 |
+
+Giving each geometry one vote, instead of weighting by its number of configurations, the pooled four-intervention nMAE is frozen 0.78 / 0.86, trajectory 0.60 / 0.64, InfoNCE 0.60 / 0.64, and regression 0.61 / 0.59. The regression mass advantage in the sample-weighted row is not present in this unweighted average.
+
+Per held-out geometry, pooled, four interventions. Learned entries are seed 0 / seed 1.
+
+| Geometry | n | Frozen mass | Trajectory mass | InfoNCE mass | Regression mass | Frozen friction | Trajectory friction | InfoNCE friction | Regression friction |
+|---|---|---|---|---|---|---|---|---|---|
+| Blue carton | 46 | 0.57 | 0.50 / 0.50 | 0.39 / 0.48 | 0.36 / 0.40 | 0.77 | 0.56 / 0.51 | 0.53 / 0.57 | 0.47 / 0.54 |
+| Cow | 85 | 0.75 | 0.68 / 0.66 | 0.74 / 0.64 | 0.34 / 0.26 | 0.96 | 0.78 / 0.76 | 0.84 / 1.01 | 0.77 / 0.72 |
+| Cube | 85 | 1.00 | 0.63 / 0.65 | 0.75 / 0.77 | 0.95 / 0.87 | 0.78 | 0.46 / 0.44 | 0.42 / 0.45 | 0.52 / 0.46 |
+| Nut | 70 | 0.60 | 0.56 / 0.53 | 0.58 / 0.40 | 0.52 / 0.41 | 0.88 | 0.56 / 0.63 | 0.66 / 0.68 | 0.62 / 0.63 |
+| White carton | 6 | 0.96 | 0.61 / 0.63 | 0.63 / 0.59 | 1.01 / 0.93 | 0.90 | 0.80 / 0.89 | 0.76 / 0.52 | 0.57 / 0.65 |
+
+Trajectory minus InfoNCE, geometry-level, four interventions (negative means trajectory has lower error):
+
+| Readout | Target | Mean delta | Geometry range | Both seeds favor trajectory | Seeds disagree in sign | Mean \|seed difference\| |
+|---|---|---|---|---|---|---|
+| Pooled | mass | −0.001 | −0.119 to +0.070 | 1/5 | 3/5 | 0.079 |
+| Pooled | friction | −0.005 | −0.156 to +0.207 | 2/5 | 2/5 | 0.138 |
+| 4×4 | mass | −0.007 | −0.065 to +0.086 | 1/5 | 3/5 | 0.085 |
+| 4×4 | friction | −0.013 | −0.087 to +0.075 | 2/5 | 2/5 | 0.075 |
+
+The mean differences are smaller than the seed scatter. Trajectory minus frozen remains consistently negative on the pooled probe (both seeds, 5/5 geometries, both targets). That repeats the earlier pilot; it is not new evidence for the trajectory target, because InfoNCE produces the same geometry-equal error.
+
+Regression versus the contrastive runs is a geometry split, not a uniform ranking. Both regression seeds lower cow pooled mass from about 0.67 to about 0.30, and both leave cube mass near the frozen value (0.95 / 0.87 against frozen 1.00) while trajectory reaches 0.63 / 0.65. White-carton mass goes the same way: regression 1.01 / 0.93 against frozen 0.96, trajectory 0.61 / 0.63. The paired trajectory-minus-regression mass delta therefore ranges from −0.35 to +0.37 across geometries. Its mean is about zero. Friction differences are smaller than, or comparable to, the seed gap.
+
+Within a geometry, four interventions, pooled sample-weighted nMAE is frozen 0.35 / 0.69, trajectory about 0.33 / 0.62, InfoNCE about 0.32 / 0.59, and regression 0.31 / 0.54. The tracker is 0.08 / 0.19. The ordering is the same and the gaps are small.
+
+Scaling curves from one to four interventions do not create a trajectory lead that is absent at four. On pooled features the three learned methods stay within about 0.08 nMAE of each other at every count. Position-decoding R² stays near zero for all three. Pooled `push_x` is negative (trajectory about −0.33, InfoNCE about −0.53 to −0.76, regression about −0.44 to −0.69). The best cell is still about 0.23.
+
+**Limitations.**
+- Five geometries, and white carton has six configurations. Two seeds. A mean delta of 0.01 cannot be separated from seed noise.
+- Intervention subsets share configurations. The scaling means are descriptions. The paired counts above use geometries, not subsets.
+- Regression sees log mass and log friction during training. The contrastive runs do not. Each method is still trained on one intervention at a time, so regression is asked to predict both properties from actions that do not identify both, including friction from the toss.
+- The evaluated predictor is a linear probe of backbone features. The training heads are discarded. Same budget and augmentation do not make the regression loss scale identical to InfoNCE, and the learning rates were not retuned.
+- The 4×4 curves at two and three interventions use the published representative subsets. The four-intervention comparison does not.
+- Sample-weighted nMAE is dominated by cow, cube, and nut. The cow regression result moves that average without moving every geometry.
+- Labels are synthetic simulator assignments. Renders are noiseless. The Stage 3 gate is still failed. These actions are the post-hoc fallback set.
+
+**Conclusion.** Trajectory-similarity supervision does not have a consistent advantage over generic contrastive learning on this probe. The two contrastive objectives match once each held-out geometry is counted once, and the seeds do not agree on a winner. Direct physical-property supervision is better on some geometries, especially cow mass, and worse on others, especially cube and white-carton mass. It does not dominate the contrastive runs, and none of the three approaches approaches the image-position tracker. The earlier improvement over frozen DINOv2 should not be credited to the trajectory target. Do not start a Phase 2 objective or a new physics grid on the strength of this comparison.
