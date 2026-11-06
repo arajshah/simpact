@@ -126,7 +126,7 @@ Central question: **which physical interventions make hidden object properties i
 | v0 PHINO within-geometry similarities | Contaminated for cow (settle-only swap drops similarity to as low as 0.83) and bunny (settling motion up to 14% of its response) |
 | v0 PHINO cross-geometry similarities | Mostly reflect mesh body-frame conventions (rank correlation 0.74 vs start-relative). **Do not train on v0 similarities.** |
 
-### Stage 2: v3 specification (drafted, awaiting approval)
+### Stage 2: v3 specification (approved with two amendments, Nov 5)
 [`docs/phino_v3_identifiability_spec.md`](./phino_v3_identifiability_spec.md) proposes:
 - a canonical at-rest start with acceptance checks plus a zero-action control;
 - pure centre-of-mass pushes at two strengths (`push_lo`, `push_hi`);
@@ -137,9 +137,22 @@ Central question: **which physical interventions make hidden object properties i
 
 A Coulomb toy model already predicts that two push strengths observed only at the final frame are nearly degenerate (about 5° apart). Time-resolved deceleration or the toss should break this, and Stage 3 must verify it on real contacts.
 
+### Stage 3: state-only identifiability pilot (done; gate failed)
+`scripts/phino_simpact_grid_v3.py` and `scripts/phino_v3_identifiability_pilot.py` (commit `c3bf96a`); outputs in `docs/results/phino_v3_identifiability_pilot_v1/`; full write-up in the experiment log.
+
+- **Mass:** the vertical toss is validated. Its apex is shape-independent and friction-blind (sensitivity 0.000), it is airborne for at least 5 frames, and it predicts mass at 0.07–0.12 of baseline error (ideal) and 0.26–0.29 (224 px).
+- **Friction:** needs time-resolved post-push deceleration. Identifiable from ideal states (one push at 100 Hz, or push_lo + push_hi + toss at 20 Hz; cow and cube); at 224 px and 20 Hz only marginal (cow 0.50, cube 0.52).
+- **Two pushes, final positions only:** degenerate. Sensitivity directions are only 2.1–8.4° apart, matching the Coulomb prediction.
+- **Gate fails** (at most 2 of 6) under every variant, mainly because of protocol problems:
+  - S1/S2 speed thresholds are below contact jitter;
+  - the bunny rocks and the sphere rolls;
+  - centre-of-mass pushes topple the cartons and flip the nut;
+  - the sphere exceeds the displacement cap.
+- The pre-registered selection picks no push candidate.
+
 ## Next task
 
-Wait for approval of the v3 spec (its §9 lists the decisions). Then implement Stage 3 only (`scripts/phino_v3_identifiability_pilot.py`, state-only). Do not run the full v3 grid, render images, or train models before the Stage 3 gate passes and is approved.
+Wait for decisions on the v3.1 revisions R1–R6 in the spec's §10. Then rerun Stage 3 only. Do not generate the full v3 dataset, render training images, or train PHINO until a re-registered Stage 3 gate passes and is approved.
 
 ## Handoff protocol
 

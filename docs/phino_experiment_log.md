@@ -180,3 +180,97 @@ The ridge features are start-relative positions plus speeds and orientation chan
 - **Invalid as physical similarity:** v0 cross-geometry PHINO similarities.
 
 v3 must use matched, at-rest starts and start-relative orientation channels.
+
+## 2026-11-05: Stage 3 state-only identifiability pilot (v3 interventions)
+
+**Question.** Which v3 interventions make mass and friction separately identifiable from simulator states, at ideal precision and at realistic 224×224 visual precision? Does the toss give a measurable, mass-specific airborne response? Does the evidence pass the pre-registered gate for building the full v3 dataset?
+
+**Design.** Approved spec [`phino_v3_identifiability_spec.md`](./phino_v3_identifiability_spec.md) §6, plus two amendments:
+- **Precision models.**
+  - *visual224:* 1 px localization error, with px/m set by a fixed camera framing each geometry's motion for that action (overhead-oblique for pushes, side view for the toss). Speed and deceleration errors are propagated by finite differences or a least-squares fit at the observation rate; yaw is treated as invisible for the sphere.
+  - *ideal:* the same model with 1000× smaller errors.
+  - The spec's original σ values are also reported.
+- **Toss validation:** airborne frames from contact detection, apex size in pixels, friction-to-mass sensitivity ratio, and toss-only off-grid mass prediction.
+
+**Data and code.**
+- SIMPACT `c3bf96a`: `scripts/phino_simpact_grid_v3.py` and `scripts/phino_v3_identifiability_pilot.py`. The run used that code before it was committed.
+- Command: `.venv/bin/python scripts/phino_v3_identifiability_pilot.py` (about 75 s with 7 workers) writes to `results/phino_v3_identifiability_pilot_v1/` (Brown only; includes a 40 MB `traces.npz`).
+- Committed summary: [`docs/results/phino_v3_identifiability_pilot_v1/`](./results/phino_v3_identifiability_pilot_v1/).
+- **Simulations:**
+  - 7 geometries × 85 configurations (3×3 grid, 4 off-grid points, 72 finite-difference neighbours);
+  - each with a common start, a zero-action control, and 7 candidate actions;
+  - plus a half-timestep rerun of the centre configuration.
+  - No full grid, renders, or training. Earlier grids are byte-identical.
+
+**Start protocol (S1–S3).**
+
+| Geometry | Approved S1 | Drift reading | Configurations with verified start |
+|---|---|---|---|
+| blue carton, cow | pass | pass | 85/85 |
+| cube, nut | fail | pass | 85/85 |
+| white carton | fail | fail (0.0104 mm vs 0.01 mm) | 38/85; S2 fails from resting-contact chatter (speed 5e-4–1e-3 m/s) |
+| bunny | fail | fail | 2/85; residual rocking about 0.1 rad/s |
+| sphere | fail | fail | 0/85; keeps rolling (S3 fails 82/85) |
+
+The approved S1 speed thresholds (1e-4 m/s, 1e-3 rad/s) are below MuJoCo's resting-contact jitter for mesh contacts. That is why cube and nut fail S1 even though they are motionless to within 0.001 mm.
+
+**Validity and pre-registered selection.**
+- **Pure centre-of-mass pushes topple tall objects:** white carton 3/9 valid at every push candidate (tilts about 90°), blue carton 4–6/9; nut flips at 2.0 N and 4.0 N. The sphere exceeds the 1 m cap under every new push, and fails the 60° tilt rule under both tosses (7/9).
+- **Result:** the pre-registered rule selects **no push candidate**, whether or not the sphere is included. The toss (4.0 N) is selected only when the sphere is excluded.
+- **Post-hoc analysis:** a validity-only fallback (most-valid candidate per family: push_lo 1.6 N, push_hi 3.2 N, toss 4.0 N) and all 8 candidate combinations were analysed as clearly labelled post-hoc analyses.
+
+**Gate.** **Fails.** At most 2 of 6 non-sphere geometries pass, and only in some settings, in every one of these combinations:
+- all candidate combinations;
+- ideal, visual224, and spec precision;
+- both S1 readings;
+- M1 thresholds of 7, 8, or 9 of 9 points, and M2 ratio thresholds of 0.4, 0.5, or 0.6.
+
+For the fallback choice:
+- ideal precision: cow and cube pass (drift reading), cow only (approved S1);
+- visual224: cow only, with friction ratio 0.50, exactly at the threshold.
+
+**Which interventions identify what** (fallback candidates; "verified" = blue carton, cow, cube, nut; M1 ≥ 8/9 and M2 ≤ 0.5):
+
+| Intervention / observation | Ideal state precision | 224-px visual precision |
+|---|---|---|
+| Final image only (O1) | cube only: friction (push_lo); both (all three actions). This relies on final-yaw and toss landing-position features. Cow passes none. | nothing |
+| v2 reference push (O2) | friction only (cow, cube, nut); 21 of 36 points have non-smooth derivatives | nothing |
+| One new push, 20 Hz (O2) | friction only for push_lo on cube; push_hi nothing | nothing |
+| One new push, 100 Hz (O4) | **both** (cow, cube), via post-push deceleration | nothing: per-frame differencing noise grows with frame rate |
+| push_lo + push_hi, 20 Hz | nothing | nothing |
+| **toss (O2/O4)** | **mass**: 4/4 verified geometries | **mass**: 4/4 |
+| push_hi + toss, 20 Hz | both (cube); mass (cow) | mass (cow, cube) |
+| push_lo + push_hi + toss, 20 Hz | **both** (cow, cube) | both (cow, at threshold 0.50); mass (cube, friction 0.52) |
+
+**Hypotheses.**
+- **H1** (two pushes, final state only, ill-conditioned) **is supported.**
+  - In real contacts the final-displacement sensitivity directions of push_lo and push_hi are only **2.1–8.4°** apart (Coulomb toy model: about 5°).
+  - Fitted exponents match the toy model closely (push_hi: m^−2.3 μ^−1.35 against a predicted m^−2.38 μ^−1.38).
+  - At ideal precision only the final-yaw feature gives local full rank, and off-grid prediction still fails (cow 1.02/0.98).
+- **H2** (push_hi identifies μ through deceleration where sliding is long enough) **is supported physically but not at 20 Hz or 224 px.**
+  - Deceleration is resolvable at 20 Hz in 5–8 of 9 configurations, and in all 9 at 100 Hz.
+  - At ideal precision push_hi alone identifies both properties at 100 Hz (cow 0.25/0.32, cube 0.27/0.16), but not at 20 Hz.
+- **H3** (the toss makes mass identifiable) **is supported.**
+  - The toss is airborne for at least 5 frames with an apex of 38–202 mm (at least 12 px).
+  - Its apex is **identical across all five geometries** with a verified start (it depends on force over mass only), and its friction sensitivity is 0.000.
+  - Toss-only off-grid mass error is 0.07–0.12 of baseline (ideal) and 0.26–0.29 (visual), against about 1.1 for friction.
+  - The toss sensitivity direction is 30–38° from the pushes.
+  - **Amendment 2 is satisfied** for blue carton, cow, cube, and nut. It cannot be assessed for white carton, bunny, or sphere, which have no verified starts.
+- **H4** (sphere friction unidentifiable) is **not testable**: the sphere fails the start protocol and the validity rules.
+
+**Other measurements.**
+- **Cross-geometry** (leave one geometry out among the 4 verified, all three actions, 20 Hz): mass/friction error ratios are 0.08–0.14 / 0.12–0.20 (ideal) and 0.15–0.20 / 0.25–0.27 (visual). These are better than the within-geometry results, which suggests the 9-point within-geometry test (M2) is limited by sample size. Only 4 similar geometries were used, so treat this as indicative.
+- **Solver robustness:** cow and cube features are stable at half the timestep. Blue carton and bunny push features change by more than the visual σ, consistent with contacts near tipping.
+
+**Limitations.**
+- Idealized pixel-noise model: no occlusion, motion blur, or segmentation error.
+- 9 training points per geometry.
+- Post-hoc candidate choice.
+- The sphere and three other geometries are unevaluable as designed.
+
+**Conclusion.**
+- The toss is a validated, shape-independent, friction-blind mass intervention.
+- Two push strengths observed only at the end remain degenerate, as predicted.
+- Friction requires time-resolved post-push deceleration. It is identifiable from ideal states (100 Hz single push, or all three actions at 20 Hz) but only marginally at 224 px and 20 Hz.
+- The evidence does **not** support generating the full v3 dataset with this protocol: the gate fails because of protocol problems (start criteria, push toppling, sphere), not only because of identifiability.
+- Proposed v3.1 revisions are in the spec, §10.

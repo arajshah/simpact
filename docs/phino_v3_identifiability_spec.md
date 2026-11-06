@@ -1,6 +1,6 @@
 # v3 identifiability grid: experimental specification
 
-**Status: DRAFT, awaiting research-owner approval (Nov 5, 2026).** Nothing in this document has been run. Stage 3 (state-only identifiability pilot) and the full v3 grid each require approval of this specification. Existing grids, exports, and results are preserved and read-only.
+**Status (Nov 5, 2026).** §2–§6 were approved with two amendments: an ideal vs 224-px visual precision comparison, and toss airborne/mass validation. The Stage 3 pilot ran and **failed the gate**; see §10 and `docs/phino_experiment_log.md`. The full v3 grid has **not** been generated. §10 proposes v3.1 revisions that need approval before any rerun. Existing grids, exports, and results are preserved and read-only.
 
 Central question: **Which physical interventions make hidden object properties identifiable, and can learned visual representations preserve that information?** v3 addresses the first half with simulator states only; Stage 4 (representations) starts only if Stage 3 passes.
 
@@ -152,3 +152,42 @@ Tests cover S1–S3 acceptance, the action schedules (no dependence on mass or f
 3. Confirm that `push_x_v2` is retained only as a reference, and that `grasp_lift_release` and `lateral_flick` are retired in v3.
 4. Decide on v3b geometry expansion (recommended, after the Stage 3 gate).
 5. Confirm start-relative channels as the default for future PHINO exports. PHINO's reference engine uses absolute channels, so this is a deliberate deviation.
+
+**Decisions recorded (Nov 5, 2026).**
+- Approved: the common-start protocol, candidate actions, validity-only selection, start-relative orientation, and §6 metrics.
+- `push_x_v2` is kept as a reference; `grasp_lift_release` and `lateral_flick` are retired.
+- The 5-of-6 gate is kept provisionally, with threshold sensitivity reported.
+- Amendments: evaluate at ideal state precision and at 224-px visual precision; validate the toss's airborne, mass-specific response.
+
+## 10. Stage 3 outcome and proposed v3.1 revisions (awaiting approval)
+
+**Outcome** (code `c3bf96a`; full write-up in the experiment log):
+- **The gate fails:** at most 2 of 6 non-sphere geometries pass, under every candidate combination, precision model, S1 reading, and threshold variant.
+- **The pre-registered selection fails:** it selects no push candidate.
+- **The toss is validated:** shape-independent, friction-blind, airborne for at least 5 frames, and mass-predictive (0.26–0.29 of baseline error at 224 px).
+- **Two pushes observed only at the end are degenerate,** as predicted (2.1–8.4° apart).
+- **Friction needs time-resolved post-push deceleration:** identifiable from ideal states, only marginal at 224 px and 20 Hz.
+
+The failures come mainly from the protocol, not from identifiability.
+
+**Proposed revisions** (none applied; each needs approval):
+
+- **R1. Start criteria.**
+  - **Problem:** the S1/S2 speed thresholds sit below MuJoCo's resting-contact jitter (1e-4–1e-3 m/s), even though positions are stable to 0.001 mm.
+  - **Proposal:** judge rest by an undamped 0.5 s hold with displacement ≤ 0.01 mm and rotation ≤ 0.01°, plus the unchanged S3 zero-action control (≤ 0.5 mm over 2.5 s).
+  - **Bunny** (rocks about 0.1 rad/s): search a few candidate rest orientations at reference physics and use the most stable one.
+  - **Sphere** (polyhedral mesh rolls indefinitely): an analytic sphere collision primitive would be a geometry change; or exclude the sphere from push studies. Your decision.
+- **R2. Push application point.**
+  - **Problem:** centre-of-mass pushes topple the cartons and flip the nut.
+  - **Proposal:** apply the same world-frame force at a fixed low point, 1 cm above the support contact, implemented as an equivalent wrench (force plus r × F torque about the centre of mass). This resembles a low robot pusher.
+  - Re-validate candidates with the same validity-only rule. Alternatively, count toppling as a valid categorical response; I don't recommend this, because it changes the response regime.
+- **R3. Friction features at 224 px.**
+  - **Problem:** finite-difference speeds amplify pixel noise, and more so at higher frame rates.
+  - **Proposal:** pre-register deceleration as the curvature of a quadratic fit to post-push positions (not speeds), and add sliding duration (stop time) as a feature. This is a feature-extraction change only, with no new physics.
+- **R4. Within-geometry prediction design.**
+  - **Problem:** a 9-point linear ridge is sample-limited; cross-geometry prediction with 39 training points did better (friction 0.25–0.27 at 224 px).
+  - **Proposal:** train on a 5×5 within-geometry design (25 points, same ranges) and test on 4 off-grid points. Keep α = 1 and the 0.5 ratio.
+- **R5. Geometry set for the Stage 3 rerun.** Only four geometries currently have verified starts. Add the recommended v3b primitives (wide, low, and tall shapes) to the Stage 3 rerun, so the gate is judged on more than 4–6 shapes, with the split stratified by class.
+- **R6. Sphere and caps.** With fixed, geometry-independent actions the sphere exceeds the 1 m displacement cap. Testing H4 requires either a larger workspace cap for pushes or accepting that the sphere stays outside the push study. The tilt rule is also meaningless for a sphere; exempt rotationally symmetric bodies from it.
+
+**Recommendation.** Do not generate the full v3 dataset. Approve or amend R1–R6, then rerun Stage 3 (about 2 minutes of CPU per 7 geometries) under a re-registered gate.
