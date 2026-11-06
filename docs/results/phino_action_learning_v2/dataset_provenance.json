@@ -1,0 +1,140 @@
+{
+ "format": "simpact_phino_v3_action_conditioned_observations_v1",
+ "command": [
+  "scripts/phino_v3_observation_dataset.py"
+ ],
+ "simpact_git": {
+  "path": "/cs/local/nbu/people/ashah264/simpact",
+  "commit": "f0bcc0515af854bab4051250a3a537b8e5bacd05",
+  "branch": "phino-physics-experiments",
+  "tracked_changes": true
+ },
+ "phino_git": {
+  "path": "/cs/local/nbu/people/ashah264/phino",
+  "commit": "3f1134d523559e52adce08bdac8e0b711c3c722c",
+  "branch": "eval/grouped-physics-probes-oct28",
+  "tracked_changes": false
+ },
+ "pilot_summary_sha256": "de484463ddaf6c712357946bee6cc4b63a6882882a3042109f311a9263be7d06",
+ "pilot_traces_sha256": "37175ed40e9ece0a82625cc77f214a99eafaebd6d71e3a3445d86c0cf1defebc",
+ "manifest_sha256": "69d208de7d05cef77b40fdc6624837b9781a9c283841e3544f3d4dc7eb9d66d2",
+ "actions": [
+  "push_x_v2",
+  "push_lo_1.6N",
+  "push_hi_3.2N",
+  "toss_4.0N"
+ ],
+ "frame_indices_20hz": [
+  2,
+  4,
+  6,
+  9,
+  49
+ ],
+ "frame_times_s": [
+  0.0,
+  0.15000000000000002,
+  0.25,
+  0.35000000000000003,
+  0.5,
+  2.5
+ ],
+ "cameras": {
+  "push": {
+   "offset": [
+    0.19508841633796692,
+    -0.02205149456858635,
+    0.0
+   ],
+   "distance": 1.0699031658431408,
+   "azimuth": 90.0,
+   "elevation": -55.0
+  },
+  "toss": {
+   "offset": [
+    0.0013897388707846403,
+    0.00027288368437439203,
+    0.19195464253425598
+   ],
+   "distance": 1.0812684007766238,
+   "azimuth": 90.0,
+   "elevation": -10.0
+  }
+ },
+ "image_size": 224,
+ "inclusion_rule": "configs passing S2 and S3 of the recomputed v3 common start; geometries with >= 20 such configs",
+ "geometries": {
+  "rigid_0103_cc48978ad2__white_coconut_milk_carton": {
+   "start_ok_configs": 38,
+   "included": true,
+   "replay_check": {
+    "config": "m0.300000_mu0.300000",
+    "action": "toss_4.0N",
+    "max_abs_diff": 0.0
+   },
+   "radius_m": 0.1550048269540074
+  },
+  "rigid_0103_cc48978ad2__blue_milk_carton": {
+   "start_ok_configs": 85,
+   "included": true,
+   "replay_check": {
+    "config": "m0.300000_mu0.300000",
+    "action": "toss_4.0N",
+    "max_abs_diff": 0.0
+   },
+   "radius_m": 0.14929502072471906
+  },
+  "object_bunny_c76f3d33cb__mesh_bunny": {
+   "start_ok_configs": 2,
+   "included": false,
+   "replay_check": null,
+   "radius_m": null
+  },
+  "object_cow_ae86a83b14__mesh_cow": {
+   "start_ok_configs": 85,
+   "included": true,
+   "replay_check": {
+    "config": "m0.300000_mu0.300000",
+    "action": "toss_4.0N",
+    "max_abs_diff": 0.0
+   },
+   "radius_m": 0.0790811799433637
+  },
+  "object_cube_c3319640e9__mesh_cube": {
+   "start_ok_configs": 85,
+   "included": true,
+   "replay_check": {
+    "config": "m0.300000_mu0.300000",
+    "action": "toss_4.0N",
+    "max_abs_diff": 0.0
+   },
+   "radius_m": 0.08660254166892228
+  },
+  "object_nut_8cdaf17787__mesh_nut": {
+   "start_ok_configs": 85,
+   "included": true,
+   "replay_check": {
+    "config": "m0.300000_mu0.300000",
+    "action": "toss_4.0N",
+    "max_abs_diff": 0.0
+   },
+   "radius_m": 0.0794877011609726
+  },
+  "object_sphere_954b0cf9a6__mesh_sphere": {
+   "start_ok_configs": 0,
+   "included": false,
+   "replay_check": null,
+   "radius_m": null
+  }
+ },
+ "n_samples": 1357,
+ "n_object_out_of_frame": 0,
+ "labels": "mass (kg) and contact friction are synthetic simulator assignments",
+ "anchor": "all frames rendered as canonical rest pose q* composed with the saved start-relative motion; one shared before image per geometry and camera (EGL rendering varies by up to 1/255 in a few pixels between identical renders)",
+ "notes": [
+  "Kinematic replay of saved Stage 3 traces; no new physics.",
+  "v1 of this dataset anchored clips at each configuration's own verified start; its sub-0.1 mm friction-dependent offsets leaked friction into static images (within-geometry static probe nMAE 0.39) and it must not be used.",
+  "Camera framing uses the union motion extent over included geometries (global, label-independent within a camera).",
+  "Bunny and sphere fail the common-start protocol and are excluded."
+ ]
+}

@@ -274,3 +274,56 @@ For the fallback choice:
 - Friction requires time-resolved post-push deceleration. It is identifiable from ideal states (100 Hz single push, or all three actions at 20 Hz) but only marginally at 224 px and 20 Hz.
 - The evidence does **not** support generating the full v3 dataset with this protocol: the gate fails because of protocol problems (start criteria, push toppling, sphere), not only because of identifiability.
 - Proposed v3.1 revisions are in the spec, §10.
+
+## 2026-11-06: Action-conditioned representation pilot
+
+**Question.** On the existing Stage 3 traces, does contrastive fine-tuning of DINOv2 with physical-intervention supervision improve mass and friction prediction relative to frozen DINOv2, and does that change with the number of observed interventions?
+
+**Hypothesis.** Clip fine-tuning should beat a frozen encoder and a static-image fine-tune that sees identical images for every physics assignment. More interventions should help if each one adds information. This does not reopen the failed Stage 3 gate and does not justify a new physics grid.
+
+**Data and code.**
+- Observations: `data/phino_simpact_v3obs_v2/` (Brown only; provenance in [`docs/results/phino_action_learning_v2/dataset_provenance.json`](./results/phino_action_learning_v2/dataset_provenance.json)). Kinematic replay of saved Stage 3 traces. No new physics. Replay of one toss per included geometry matched the saved trace with maximum difference 0.0.
+- Inclusion: configurations whose recomputed start passed S2 and S3, and geometries with at least 20 such configurations. Bunny (2) and sphere (0) are excluded. Frames are anchored at the canonical rest pose, and every clip of a geometry and camera shares one before image. A discarded v1 anchored each configuration at its own start; sub-0.1 mm friction-dependent offsets leaked into static probes (within-geometry nMAE 0.39). Do not use `data/phino_simpact_v3obs_v1/` or `results/phino_action_learning_v1/`.
+- The probe table keeps the 292 configurations that have all four saved actions: blue carton 46, cow 85, cube 85, nut 70, white carton 6. White carton has 38 start-ok configurations, but most pushes were not saved.
+- Actions: `push_x_v2`, `push_lo_1.6N`, `push_hi_3.2N`, `toss_4.0N`. Frames at 0, 0.15, 0.25, 0.35, 0.50, and 2.50 s, 224×224.
+- SIMPACT generator and trainer: commit `f48d1e1` (dataset provenance records base `f0bcc05` with those scripts still uncommitted at generation time). PHINO `3f1134d`. The 4×4 spatial readout was added after `f48d1e1` and was used only to extract features, not to retrain.
+- Commands, from the SIMPACT root inside the existing GPU allocation (no new Slurm job): `bash scripts/run_phino_action_learning.sh`, then `bash scripts/run_phino_action_grid_features.sh`. Pooled probes: `results/phino_action_learning_v2/probes_all/`. Frozen spatial probes: `results/phino_action_learning_v2/probes_grid_frozen/`.
+- All 15 runs wrote `done.json` at 400 steps. No training process is still running. Logs contain no tracebacks.
+
+**Protocol.**
+- Representation, identical for every encoder: for each intervention, concatenate `f(frame) − f(before)` over the five post-onset frames; concatenate interventions in fixed action order. The static control is the push-camera before image.
+- Probe: standardized dual ridge on log mass and log friction separately. Alpha is chosen by inner grouped cross-validation on the training split only. Predictions are clipped to the training log-label range ± 0.5. nMAE is MAE divided by the MAE of the training-mean predictor on the same test samples (1.0 = no better than the mean).
+- Splits: leave-one-geometry-out, and within-geometry leave-one-physics-cluster-out. The test geometry is excluded from that fold's training, normalizer fit, and fine-tuning.
+- Fine-tuning: PHINO `DynaCLIPModel` (DINOv2-B/14, last 4 blocks trainable, CLS‖mean-patch) and dense SoftInfoNCE. Each batch is one intervention. The target is the full pairwise similarity of that intervention's start-relative trajectory, with `TrajectoryNormalizer(n_actions=1, timesteps=50)` fit on training geometries only. Colour jitter and a small translation are shared across a clip; flips are not used. 400 steps, batch 24 clips, backbone learning rate 1e-5, head 1e-3. Seeds 0 and 1 for clips; seed 0 for the static control. About 49 minutes of training in total.
+- `metrics.csv` records every 10th step, which never lands on `push_hi`. That is a logging gap. Training still cycles all four actions.
+
+**Results.** Scaling curves average nMAE over every intervention subset of a given size, on the same 292 configurations. The figure is [`docs/results/phino_action_learning_v2/intervention_scaling.png`](./results/phino_action_learning_v2/intervention_scaling.png); the table is [`scaling_summary.md`](./results/phino_action_learning_v2/scaling_summary.md).
+
+Leave-one-geometry-out, mean nMAE (mass / friction):
+
+| Representation | 0 (static) | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|---|
+| Frozen DINOv2 | 1.00 / 0.99 | 0.88 / 0.95 | 0.85 / 0.85 | 0.80 / 0.88 | 0.76 / 0.86 |
+| Clip fine-tune, seed 0 | 1.00 / 0.97 | 0.87 / 0.85 | 0.74 / 0.73 | 0.67 / 0.66 | 0.61 / 0.60 |
+| Clip fine-tune, seed 1 | 1.00 / 0.97 | 0.89 / 0.84 | 0.73 / 0.72 | 0.67 / 0.65 | 0.60 / 0.61 |
+| Static-image fine-tune | 1.00 / 0.99 | 0.89 / 1.00 | 0.88 / 0.83 | 0.87 / 0.84 | 0.86 / 0.83 |
+| Image-position tracker | — | 0.47 / 0.58 | 0.25 / 0.29 | 0.07 / 0.13 | 0.04 / 0.12 |
+| Privileged state summary | — | 0.56 / 0.63 | 0.34 / 0.39 | 0.21 / 0.23 | 0.20 / 0.18 |
+
+- **Clip fine-tuning beats frozen features across geometries.** Mean delta nMAE versus frozen, over the 15 non-static subsets: seed 0, −0.094 mass (14/15 subsets) and −0.154 friction (14/15); seed 1, −0.093 (14/15) and −0.163 (15/15). With all four interventions, every held-out geometry improves. Cube mass goes from 1.00 (frozen) to 0.63 / 0.65. White carton friction is the weak cell (0.80 and 0.89 on only 6 configurations).
+- **The static-image control does not.** Its leave-one-geometry-out mass delta versus frozen is +0.035 (4/15 subsets improved). Static probes on the shared before image are 1.00, so the v1 friction leak is gone. Logged clip loss falls from about 3.0 to 1.3–2.0; static loss stays near 2.5–2.8.
+- **Within a geometry, fine-tuning adds little for mass** (mean delta −0.003 and −0.014). Frozen features already track the toss: within-geometry toss mass nMAE is 0.02. Friction within a geometry improves only slightly (about −0.06).
+- **The image-position tracker is the ceiling on these renders.** Fifteen numbers from the segmentation centroid and area, with the same ridge probe, reach 0.04 / 0.12 at four interventions. The privileged physics summary (displacement, peak speed, apex, yaw, stop time) is 0.20 / 0.18. Raw state frames and the full trajectory, fed to the same linear probe, stay near 0.7–1.0 across geometries: a high-dimensional linear fit is a poor privileged baseline here.
+- **Pooled DINOv2 features do not keep that image motion.** Leave-one-geometry-out R² for decoding the centroid shift and log-area change is at most 0.19 (clip seed 0, `push_lo`) and is negative for `push_x` (−0.54 frozen, −0.32 and −0.35 after clip fine-tuning).
+- **A frozen 4×4 average of patch tokens helps only partly,** on the same nine representative subsets (`probes_grid_frozen`). At four interventions, leave-one-geometry-out nMAE is 0.67 / 0.59, versus 0.76 / 0.86 for pooled features and 0.04 / 0.12 for the tracker. Position-decoding R² stays ≤ 0.18. Static remains 1.00 / 0.98.
+
+**Limitations.**
+- Five geometries, and the white-carton fold has six configurations. Labels are synthetic simulator assignments. Renders are noiseless, with a known camera and no occlusion.
+- The Stage 3 gate failed. These actions are the post-hoc fallback pushes plus the reference push and the toss, not a re-registered protocol. Configurations without a saved trace for an action are absent.
+- 400 steps and two seeds. The probe is linear. Within-geometry gains can be hidden by the small clusters.
+- The static control was run at seed 0 only.
+- Cross-geometry similarity targets are trajectory similarities, not a claim that those trajectories match real materials.
+
+**Conclusion.** Action-conditioned images on this grid contain mass and friction information that a static image does not: a tracker that reads object position already predicts both, and more interventions help it. Contrastive fine-tuning of pooled DINOv2 features preserves some of that information across geometries and beats a static-image fine-tune, but it remains several times worse than the tracker. The frozen spatial readout does not close the gap. Do not treat this as evidence that PHINO has learned transferable physical properties, and do not generate the v3.1 grid until R1–R6 are approved.
+
+**Resumed after the interrupted session.** Fine-tuned 4×4 features were already extracted (`results/phino_action_learning_v2/features/grid_ft_*.npz`, finished 02:21). They were not probed. That evaluation was started into a new directory, `results/phino_action_learning_v2/probes_grid_ft/`, without rerunning training or overwriting `probes_all` or `probes_grid_frozen`. Its numbers are appended below when the run finishes.

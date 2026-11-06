@@ -36,6 +36,7 @@ FRAME_INDICES = (2, 4, 6, 9, 49)
 ALPHAS = np.logspace(-1, 7, 17)
 TARGETS = ("mass", "friction")
 MIN_FEATURE_STD = 1e-5
+GRID = 4                       # spatial readout: 4x4 average-pooled patch tokens per frame
 PRED_LOG_MARGIN = 0.5          # predictions clipped to the training log-label range +-0.5 (all models alike)
 DEFAULT_DATA = Path("data/phino_simpact_v3obs_v2")
 DEFAULT_FEATURES = Path("results/phino_action_learning_v2/features")
@@ -103,12 +104,21 @@ def extract(args: argparse.Namespace) -> None:
     paths = sorted({p for r in rows for p in r["images"]})
     model = load_encoder(args.phino_root, args.checkpoint, "cuda")
     tf = T.Compose([T.ToTensor(), T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-    feats = np.empty((len(paths), 1536), dtype=np.float32)
+    dim = GRID * GRID * model.backbone_dim if args.grid else 1536
+    feats = np.empty((len(paths), dim), dtype=np.float16 if args.grid else np.float32)
     arrays = read_images(args.data_dir, paths)
     with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
         for i in range(0, len(paths), args.batch_size):
             batch = torch.stack([tf(Image.fromarray(a)) for a in arrays[i:i + args.batch_size]]).cuda()
-            feats[i:i + len(batch)] = model.extract_features(batch).float().cpu().numpy()
+            if args.grid:
+                # spatial readout: patch tokens average-pooled on a GRID x GRID grid
+                tok = model.backbone.forward_features(batch)["x_norm_patchtokens"].float()
+                side = int(round(tok.shape[1] ** 0.5))
+                tok = tok.transpose(1, 2).reshape(len(batch), -1, side, side)
+                pooled = torch.nn.functional.adaptive_avg_pool2d(tok, GRID)
+                feats[i:i + len(batch)] = pooled.flatten(1).cpu().numpy().astype(np.float16)
+            else:
+                feats[i:i + len(batch)] = model.extract_features(batch).float().cpu().numpy()
     if not np.isfinite(feats).all():
         sys.exit("non-finite features")
     args.features_dir.mkdir(parents=True, exist_ok=True)
@@ -121,7 +131,7 @@ class FeatureBank:
     def __init__(self, path: Path):
         with np.load(path) as d:
             self.index = {p: i for i, p in enumerate(d["paths"].tolist())}
-            self.f = d["features"]
+            self.f = d["features"].astype(np.float32)
 
     def __call__(self, p: str) -> np.ndarray:
         return self.f[self.index[p]]
@@ -345,12 +355,14 @@ def evaluate(args: argparse.Namespace) -> None:
     reps.update({r: r for r in args.baseline})
     results, all_preds = [], []
     subsets = [s for n in range(len(ACTIONS) + 1) for s in itertools.combinations(ACTIONS, n)]
+    if args.subsets:
+        subsets = [s for s in subsets if ("+".join(s) or "static") in args.subsets]
     for rep_name, rep in reps.items():
         for subset in subsets:
             if rep != "visual" and not subset:
                 continue
             bank = banks.get(rep_name)
-            for split in ("logo", "within"):
+            for split in args.splits:
                 if isinstance(bank, dict):
                     cache = {g: build_matrix(common, subset, rep, bank[g], traj) for g in bank}
                     preds = evaluate_split(common, None, split, fold_encoder=lambda g: cache[g])
@@ -366,7 +378,8 @@ def evaluate(args: argparse.Namespace) -> None:
                 for p in preds:
                     all_preds.append({"representation": rep_name, "interventions": "+".join(subset) or "static", **p})
             print(f"{rep_name:16s} {('+'.join(subset) or 'static'):45s} "
-                  + "  ".join(f"{r['split']}:{r['target'][0]}={r['nmae']:.2f}" for r in results[-4:]), flush=True)
+                  + "  ".join(f"{r['split']}:{r['target'][0]}={r['nmae']:.2f}"
+                              for r in results[-2 * len(args.splits):]), flush=True)
     decoding = {} if args.skip_decoding else \
         {name: {a: position_decoding(common, bank, a) for a in ACTIONS} for name, bank in banks.items()}
     for name, d in decoding.items():
@@ -393,6 +406,7 @@ def main() -> None:
     e.add_argument("--features-dir", type=Path, default=DEFAULT_FEATURES)
     e.add_argument("--phino-root", type=Path, default=Path("/nbu/people/ashah264/phino"))
     e.add_argument("--batch-size", type=int, default=256)
+    e.add_argument("--grid", action="store_true", help="spatial 4x4 pooled patch-token readout")
     v = sub.add_parser("evaluate")
     v.add_argument("--data-dir", type=Path, default=DEFAULT_DATA)
     v.add_argument("--output-dir", type=Path, required=True)
@@ -401,6 +415,9 @@ def main() -> None:
     v.add_argument("--baseline", action="append", default=None,
                    choices=("image_position", "state_physics", "state_frames", "state_full"))
     v.add_argument("--skip-decoding", action="store_true")
+    v.add_argument("--splits", nargs="+", default=["logo", "within"], choices=("logo", "within"))
+    v.add_argument("--subsets", nargs="+", default=None,
+                   help="restrict to these intervention sets ('static' or a+b joined by '+')")
     args = ap.parse_args()
     if args.cmd == "evaluate" and args.baseline is None:
         args.baseline = ["image_position", "state_physics", "state_frames", "state_full"]

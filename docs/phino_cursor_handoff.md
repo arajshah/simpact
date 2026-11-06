@@ -1,6 +1,6 @@
 # SIMPACT → PHINO: Cursor agent handoff
 
-Updated: November 5, 2026. This is the **working implementation handoff**, not a replacement for code/manifests. Keep it short and update it when a milestone changes.
+Updated: November 6, 2026. This is the **working implementation handoff**, not a replacement for code/manifests. Keep it short and update it when a milestone changes.
 
 ## Goal and research boundary
 
@@ -150,9 +150,19 @@ A Coulomb toy model already predicts that two push strengths observed only at th
   - the sphere exceeds the displacement cap.
 - The pre-registered selection picks no push candidate.
 
+## Milestone status: action-conditioned representation pilot (done, Nov 6, 2026)
+
+Ran because the research owner asked for a bounded learning comparison on existing traces, without waiting for v3.1 and without new physics. Code: `f48d1e1` plus a later 4×4 spatial readout in `scripts/phino_action_probe.py`. Full write-up: `docs/phino_experiment_log.md`. Summaries: `docs/results/phino_action_learning_v2/`.
+
+- Dataset `data/phino_simpact_v3obs_v2/` (Brown only): kinematic replay of saved Stage 3 traces, canonical rest pose, one shared before image per geometry and camera. Bunny and sphere excluded. An earlier v1 leaked friction through sub-0.1 mm start offsets and must not be used.
+- 15 leave-one-geometry-out runs finished (clip seeds 0 and 1, plus a static-image control). No training job is still running.
+- On 292 configurations with all four actions, contrastive clip fine-tuning beats frozen DINOv2 on leave-one-geometry-out (four interventions: mass/friction nMAE about 0.60/0.61 versus 0.76/0.86) and beats the static control (about 0.86/0.83). Both seeds agree. The static control does not improve on frozen features.
+- An image-position tracker on the same clips is far better (about 0.04/0.12). Pooled DINOv2 features do not preserve that image-space motion across geometries (position-decoding R² ≤ 0.2, often negative).
+- A frozen 4×4 patch readout narrows the gap only partly (four interventions: 0.67/0.59). Fine-tuned spatial features are probed in `results/phino_action_learning_v2/probes_grid_ft/` and recorded in the experiment log.
+
 ## Next task
 
-Wait for decisions on the v3.1 revisions R1–R6 in the spec's §10. Then rerun Stage 3 only. Do not generate the full v3 dataset, render training images, or train PHINO until a re-registered Stage 3 gate passes and is approved.
+Do not generate a new physics grid, and do not start another training sweep, until R1–R6 in the spec's §10 are approved and a re-registered Stage 3 gate passes. On the current clips the ceiling is the image-position tracker, not another pooled-feature fine-tune. The open scientific question is whether a spatial readout can keep that motion signal; the frozen 4×4 result says only partly.
 
 ## Handoff protocol
 

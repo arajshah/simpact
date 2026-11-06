@@ -79,6 +79,7 @@ class FoundationPoseEstimator(PoseEstimator):
                 refiner=self._refiner,
                 glctx=self._glctx,
                 debug=0,
+                debug_dir=str(Path("results/foundationpose_debug").resolve()),
             )
         else:
             # reuse the loaded networks; just rebind the geometry
