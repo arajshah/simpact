@@ -646,6 +646,260 @@ def save_feature_ablation(output_dir: Path, rows: list[dict[str, Any]],
     return report
 
 
+
+
+def sphere_identifier(rows: list[dict[str, Any]]) -> str:
+    """Identify the one sphere geometry by its explicit mesh name."""
+    names = sorted({r["object"] for r in rows
+                    if r["object"].endswith("__mesh_sphere") or r["object"] == "mesh_sphere"})
+    if len(names) != 1:
+        raise ValueError(f"Expected exactly one sphere geometry, found {names}")
+    return names[0]
+
+
+def compare_sphere_training(rows: list[dict[str, Any]], alpha: float):
+    """Matched held-out NON-sphere cases; vary only sphere inclusion in training.
+
+    Test rows, feature subsets, ridge penalty, and model family remain fixed.
+    Scaling is always fitted on training data only. Rejected actions are excluded.
+    """
+    sphere = sphere_identifier(rows)
+    other_objects = sorted({r["object"] for r in rows if r["object"] != sphere})
+    if len(other_objects) < 2:
+        raise ValueError("Need at least two non-sphere geometries")
+    predictions = []
+    for feature_set in FEATURE_SETS:
+        for actions in ACTION_SETS:
+            available = [r for r in rows if all(a in r["features"] for a in actions)]
+            cols = _selected_feature_columns(actions, feature_set)
+            for heldout in other_objects:
+                test_rows = [r for r in available if r["object"] == heldout]
+                if not test_rows:
+                    continue
+                train_base = [r for r in available if r["object"] not in (heldout, sphere)]
+                train_sphere = [r for r in available if r["object"] == sphere]
+                if len(train_base) < 2:
+                    raise ValueError(f"Insufficient training data for {heldout}, {actions}")
+
+                def xy(items):
+                    x = np.array([np.concatenate([r["features"][a] for a in actions])
+                                  for r in items], dtype=float)[:, cols]
+                    y = np.array([[r["mass_kg"], r["contact_friction"]]
+                                  for r in items], dtype=float)
+                    return x, y
+
+                x_test, y_test = xy(test_rows)
+                for mode, train_rows in (("without_sphere", train_base),
+                                         ("with_sphere", train_base + train_sphere)):
+                    x_train, y_train = xy(train_rows)
+                    ridge = _ridge_fit_predict(x_train, y_train, x_test, alpha)
+                    mean = np.broadcast_to(y_train.mean(axis=0), y_test.shape)
+                    for i, r in enumerate(test_rows):
+                        predictions.append({
+                            "feature_set": feature_set, "actions": "+".join(actions),
+                            "heldout_object": heldout, "mass_kg": r["mass_kg"],
+                            "contact_friction": r["contact_friction"],
+                            "training_mode": mode, "n_training": len(train_rows),
+                            "n_sphere_training": len(train_sphere) if mode == "with_sphere" else 0,
+                            "mass_kg_actual": float(y_test[i, 0]),
+                            "mass_kg_ridge": float(ridge[i, 0]),
+                            "mass_kg_baseline": float(mean[i, 0]),
+                            "contact_friction_actual": float(y_test[i, 1]),
+                            "contact_friction_ridge": float(ridge[i, 1]),
+                            "contact_friction_baseline": float(mean[i, 1]),
+                        })
+    paired = defaultdict(set)
+    for p in predictions:
+        key = (p["feature_set"], p["actions"], p["heldout_object"],
+               p["mass_kg"], p["contact_friction"])
+        paired[key].add(p["training_mode"])
+    if not paired or any(v != {"without_sphere", "with_sphere"} for v in paired.values()):
+        raise AssertionError("Sphere comparison has unmatched test cases")
+    summary, by_object = [], []
+    for feature_set in FEATURE_SETS:
+        for actions in ACTION_SETS:
+            label = "+".join(actions)
+            for target, unit in TARGETS:
+                entries = {}
+                for mode in ("without_sphere", "with_sphere"):
+                    ps = [p for p in predictions if p["feature_set"] == feature_set
+                          and p["actions"] == label and p["training_mode"] == mode]
+                    if not ps:
+                        continue
+                    actual = np.array([p[f"{target}_actual"] for p in ps])
+                    ridge = np.array([p[f"{target}_ridge"] for p in ps])
+                    baseline = np.array([p[f"{target}_baseline"] for p in ps])
+                    entries[mode] = (_score(actual, ridge), _score(actual, baseline))
+                    for obj in other_objects:
+                        op = [p for p in ps if p["heldout_object"] == obj]
+                        if op:
+                            oa = np.array([p[f"{target}_actual"] for p in op])
+                            oridge = np.array([p[f"{target}_ridge"] for p in op])
+                            obase = np.array([p[f"{target}_baseline"] for p in op])
+                            by_object.append({
+                                "feature_set": feature_set, "actions": label,
+                                "target": target, "unit": unit,
+                                "heldout_object": obj, "training_mode": mode,
+                                "n_test": len(op),
+                                "ridge_mae": _score(oa, oridge)["mae"],
+                                "baseline_mae": _score(oa, obase)["mae"],
+                            })
+                if len(entries) != 2:
+                    raise AssertionError("Missing matched model comparison")
+                before, after = entries["without_sphere"], entries["with_sphere"]
+                n_test = sum(p["feature_set"] == feature_set and p["actions"] == label
+                             and p["training_mode"] == "without_sphere" for p in predictions)
+                summary.append({
+                    "feature_set": feature_set, "actions": label, "target": target,
+                    "unit": unit, "n_test": n_test,
+                    "n_test_objects": len({p["heldout_object"] for p in predictions
+                                          if p["feature_set"] == feature_set
+                                          and p["actions"] == label}),
+                    "ridge_mae_without_sphere": before[0]["mae"],
+                    "ridge_mae_with_sphere": after[0]["mae"],
+                    "delta_mae_with_minus_without": after[0]["mae"] - before[0]["mae"],
+                    "baseline_mae_without_sphere": before[1]["mae"],
+                    "baseline_mae_with_sphere": after[1]["mae"],
+                })
+    coverage = []
+    for actions in ACTION_SETS:
+        for obj in [*other_objects, sphere]:
+            obj_rows = [r for r in rows if r["object"] == obj]
+            n = sum(all(a in r["features"] for a in actions) for r in obj_rows)
+            coverage.append({
+                "object": obj, "actions": "+".join(actions),
+                "n_valid": n, "n_total": len(obj_rows),
+                "n_missing": len(obj_rows) - n,
+                "role": "training_only_sphere" if obj == sphere else "evaluation_object",
+            })
+    return sphere, predictions, summary, by_object, coverage
+
+
+def rolling_speed_features(trace: np.ndarray, radius_m: float) -> dict[str, Any]:
+    """Translation and angular-speed magnitudes, not a no-slip contact test.
+
+    Angular speed norm is frame invariant. The v/(r*omega) ratio is approximate
+    and cannot establish the contact point's velocity or rolling without slip.
+    """
+    a = np.asarray(trace, dtype=float)
+    if a.shape != SAMPLE_SHAPE or not np.isfinite(a).all():
+        raise ValueError(f"Expected finite {SAMPLE_SHAPE}, got {a.shape}")
+    if not np.isfinite(radius_m) or radius_m <= 0:
+        raise ValueError("radius_m must be positive and finite")
+    vxy = np.linalg.norm(a[:, 7:9], axis=1)
+    omega = np.linalg.norm(a[:, 10:13], axis=1)
+    active = (vxy > 0.005) & (radius_m * omega > 0.005)
+    ratios = vxy[active] / (radius_m * omega[active])
+    p = a[:, :3]
+    return {
+        "final_xy_displacement_m": float(np.linalg.norm(p[-1, :2])),
+        "max_xy_displacement_m": float(np.max(np.linalg.norm(p[:, :2], axis=1))),
+        "xy_path_length_m": float(np.sum(np.linalg.norm(np.diff(p[:, :2], axis=0), axis=1))),
+        "z_range_m": float(np.ptp(p[:, 2])),
+        "mean_xy_speed_m_s": float(np.mean(vxy)),
+        "peak_xy_speed_m_s": float(np.max(vxy)),
+        "mean_angular_speed_rad_s": float(np.mean(omega)),
+        "peak_angular_speed_rad_s": float(np.max(omega)),
+        "active_ratio_frames": int(np.sum(active)),
+        "median_speed_ratio_v_over_r_omega": (
+            float(np.median(ratios)) if len(ratios) else None),
+        "fraction_active_frames_ratio_0p5_to_2": (
+            float(np.mean((ratios >= .5) & (ratios <= 2.))) if len(ratios) else None),
+    }
+
+
+def save_sphere_transfer(output_dir: Path, grid_dir: Path, rows, manifest,
+                         alpha: float, radius_m: float):
+    """Write separate sphere-training ablation and rotational-motion reports."""
+    sphere, preds, scores, per_object, coverage = compare_sphere_training(rows, alpha)
+    frame_hz = float(manifest.get("sampling_Hz", 20.))
+    if not np.isfinite(frame_hz) or frame_hz <= 0:
+        raise ValueError("Invalid sampling frequency")
+    sphere_motion = []
+    for rec in manifest["records"]:
+        if rec["object"] != sphere:
+            continue
+        for action in ("push_x", "push_y"):
+            status = rec["action_status"].get(action, {})
+            if status.get("valid") is not True:
+                sphere_motion.append({
+                    "mass_kg": float(rec["mass_kg"]),
+                    "contact_friction": float(rec["contact_friction"]),
+                    "action": action, "valid": False,
+                    "reason": status.get("reason", "not valid"),
+                })
+                continue
+            path = _path_from_record(grid_dir, rec, action)
+            with np.load(path, allow_pickle=False) as data:
+                trace = np.asarray(data["trajectory"])
+            sphere_motion.append({
+                "mass_kg": float(rec["mass_kg"]),
+                "contact_friction": float(rec["contact_friction"]),
+                "action": action, "valid": True, "reason": "",
+                **rolling_speed_features(trace, radius_m),
+            })
+    fields = list(dict.fromkeys(k for r in sphere_motion for k in r))
+    for row in sphere_motion:
+        for field in fields:
+            row.setdefault(field, None)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    save_csv(output_dir / "matched_predictions.csv", preds)
+    save_csv(output_dir / "matched_scores.csv", scores)
+    save_csv(output_dir / "per_object_scores.csv", per_object)
+    save_csv(output_dir / "coverage.csv", coverage)
+    if sphere_motion:
+        save_csv(output_dir / "sphere_motion.csv", sphere_motion)
+    report = {
+        "analysis": "Non-sphere object holdouts, sphere included/excluded only in training",
+        "sphere": sphere, "alpha": alpha,
+        "n_test_cases_per_action": {
+            "+".join(a): sum(p["training_mode"] == "without_sphere"
+                             and p["feature_set"] == "original"
+                             and p["actions"] == "+".join(a) for p in preds)
+            for a in ACTION_SETS},
+        "sphere_radius_assumed_m": radius_m, "frame_rate_hz": frame_hz,
+        "scores": scores, "per_object_scores": per_object,
+        "coverage": coverage, "sphere_motion": sphere_motion,
+        "interpretation_limits": [
+            "Ridge alpha and feature sets fixed; test configurations matched between training modes.",
+            "Sphere training adds rows, so training sample size differs; no reweighting applied.",
+            "Missing actions are never imputed; eligible samples vary across action sets.",
+            "v/(r*|omega|) uses angular-speed magnitude, not contact-point velocity; it cannot prove no-slip rolling.",
+            "Sphere radius is approximate; collision and contact physics are synthetic.",
+            "Exploratory seven-geometry evaluation; no untouched final test geometries.",
+        ],
+    }
+    (output_dir / "report.json").write_text(
+        json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    print("\nMatched transfer to six non-sphere geometries "
+          "(MAE; positive delta means sphere hurts):")
+    print(f"{'Feature set':<24} {'Actions':<30} {'Target':<17} "
+          f"{'Without':>9} {'With':>9} {'Delta':>9} {'Cases':>5}")
+    for entry in scores:
+        print(f"{entry['feature_set']:<24} {entry['actions']:<30} "
+              f"{entry['target']:<17} {entry['ridge_mae_without_sphere']:>9.4f} "
+              f"{entry['ridge_mae_with_sphere']:>9.4f} "
+              f"{entry['delta_mae_with_minus_without']:>+9.4f} {entry['n_test']:>5}")
+    valid_motion = [r for r in sphere_motion if r["valid"]]
+    if valid_motion:
+        print("\nSphere translation/rotation diagnostic "
+              "(coarse; not proof of no-slip rolling):")
+        for action in ("push_x", "push_y"):
+            sub = [r for r in valid_motion if r["action"] == action]
+            if sub:
+                ratios = [r["median_speed_ratio_v_over_r_omega"] for r in sub
+                          if r["median_speed_ratio_v_over_r_omega"] is not None]
+                print(f"  {action}: n={len(sub)} "
+                      f"median peak_xy_speed="
+                      f"{np.median([r['peak_xy_speed_m_s'] for r in sub]):.3f}m/s "
+                      f"median peak_angular_speed="
+                      f"{np.median([r['peak_angular_speed_rad_s'] for r in sub]):.3f}rad/s "
+                      f"median v/(r|omega|)={np.median(ratios) if ratios else float('nan'):.3f}")
+    print(f"SPHERE_TRANSFER_DIR={output_dir.resolve()}")
+    print("PHINO_SPHERE_TRANSFER_OK")
+    return report
+
+
 def _fake_trace(mass: float, friction: float, obj: int, action: int) -> np.ndarray:
     """Synthetic dynamics used only to test the analysis path, not score models."""
     t = np.linspace(0, 1, 50)
@@ -785,6 +1039,19 @@ def self_test() -> None:
         assert len(diag3["matched_object_motion"]) == 3 * 135
         ab3 = feature_ablation(expanded, 10.)
         assert len(ab3[1]) == 3 * 2 * len(ACTION_SETS)
+        sphere_test = copy.deepcopy(expanded)
+        for rec in sphere_test:
+            if rec["object"] == "test_third":
+                rec["object"] = "object_test__mesh_sphere"
+        sid, matched, checks, per_geom, cov = compare_sphere_training(sphere_test, 10.)
+        assert sid == "object_test__mesh_sphere"
+        assert len(checks) == len(FEATURE_SETS) * len(ACTION_SETS) * len(TARGETS)
+        assert all(e["n_test_objects"] == 2 and e["n_test"] == 18 for e in checks)
+        assert all(p["training_mode"] in ("without_sphere", "with_sphere") for p in matched)
+        assert len(per_geom) > 0 and len(cov) == len(ACTION_SETS) * 3
+        rf = rolling_speed_features(_fake_trace(.3, .2, 2, 0), .05)
+        assert rf["max_xy_displacement_m"] > 0
+        assert rf["peak_xy_speed_m_s"] > 0
         # Simulate the real mesh-grid failure: the third object has no valid
         # push_x or push_y trajectories but retains flick trajectories.
         missing = copy.deepcopy(expanded)
@@ -827,6 +1094,11 @@ def main() -> None:
                         help="Compare original, no-vertical-position, and motion-only "
                              "features on identical physics and object holdouts; "
                              "prints both split results")
+    parser.add_argument("--sphere-transfer", action="store_true",
+                        help="Compare non-sphere object holdouts with vs without sphere training; "
+                             "also report sphere translational and angular speeds")
+    parser.add_argument("--sphere-radius-m", type=float, default=0.05,
+                        help="Approximate sphere radius for coarse v/(r*omega) diagnostic")
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:
@@ -837,6 +1109,13 @@ def main() -> None:
     if args.output_dir is None:
         args.output_dir = args.grid_dir / "recovery_analysis"
     rows, manifest = load_dataset(args.grid_dir)
+    if args.sphere_transfer:
+        if args.feature_ablation or args.also_object_holdout:
+            parser.error("--sphere-transfer already compares fixed feature sets and "
+                         "object holdouts; omit other analysis flags")
+        save_sphere_transfer(args.output_dir / "sphere_transfer", args.grid_dir,
+                             rows, manifest, args.alpha, args.sphere_radius_m)
+        return
     n_objects = len({r["object"] for r in rows})
     n_physics = len({_key(r) for r in rows})
     print(f"Loaded {len(rows)} configuration rows from {args.grid_dir}/manifest.json")
