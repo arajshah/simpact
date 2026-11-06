@@ -48,6 +48,8 @@ import numpy as np
 # Every object/configuration receives IDENTICAL external forces and durations.
 # No action is conditioned on the object's hidden mass or friction.
 ACTION_ORDER = ("push_x", "push_y", "grasp_lift_release", "lateral_flick")
+# Original pilot cutoff; retain as a comparison reference when raising the cap.
+LEGACY_DISPLACEMENT_CUTOFF_M = 0.25
 SETTINGS = {
     "push_x": {"force_scale": 0.1000, "duration_frames": 4},
     "push_y": {"force_scale": 0.1035, "duration_frames": 4},
@@ -128,6 +130,7 @@ def self_test() -> None:
     assert np.isclose(np.linalg.norm(ff), .25) and np.allclose(tf, [0, 0, .05])
     assert np.allclose(applied_wrench("lateral_flick", 4, d)[0], 0)
     assert tuple(ACTION_ORDER) == ("push_x", "push_y", "grasp_lift_release", "lateral_flick")
+    assert LEGACY_DISPLACEMENT_CUTOFF_M == 0.25
     # Regression test: a 180-degree yaw does not create world-vertical tilt,
     # even when the source object's local z-axis initially lies sideways.
     q_initial = np.array([np.sqrt(.5), np.sqrt(.5), 0., 0.])  # initial 90deg X
@@ -416,6 +419,7 @@ def simulate_action(obj, name: str, originals: dict, engine, mujoco,
     metrics = dict(
         directed_m=round(mx_directed,6),
         max_raw_m=round(mx_raw,6),
+        exceeds_legacy_displacement_cutoff=bool(mx_raw > LEGACY_DISPLACEMENT_CUTOFF_M),
         max_orientation_deg=round(mx_orientation,3),
         max_tilt_deg=round(mx_tilt,3),
         max_speed_m_s=round(mx_speed,5),
@@ -511,7 +515,9 @@ def main() -> None:
                     help="Comma-separated kg values; default 0.25,0.30,0.35")
     ap.add_argument("--frictions", type=parse_levels, default=[0.20, 0.30, 0.40],
                     help="Comma-separated contact friction; default 0.20,0.30,0.40")
-    ap.add_argument("--max-displacement", type=float, default=0.25)
+    ap.add_argument("--max-displacement", type=float, default=LEGACY_DISPLACEMENT_CUTOFF_M,
+                    help="Maximum raw displacement (m) for trial acceptance; default 0.25. "
+                         "Use a separate --output-dir when changing this cutoff.")
     ap.add_argument("--max-tilt-deg", type=float, default=60.)
     ap.add_argument("--min-motion", type=float, default=0.02)
     ap.add_argument("--max-motion", type=float, default=0.15)
@@ -613,6 +619,9 @@ def main() -> None:
         "contact_friction_semantics": "Sliding friction applied to all contact geoms; not a measured material coefficient",
         "supervision_scope": "simulation dynamics only; not image-based hidden parameter inference",
         "max_raw_displacement_m": args.max_displacement,
+        "legacy_displacement_cutoff_m": LEGACY_DISPLACEMENT_CUTOFF_M,
+        "cutoff_differs_from_legacy": bool(not math.isclose(
+            args.max_displacement, LEGACY_DISPLACEMENT_CUTOFF_M)), 
         "max_tilt_deg": args.max_tilt_deg,
         "motion_target_min_m": args.min_motion,
         "motion_target_max_m": args.max_motion,
@@ -737,6 +746,12 @@ def main() -> None:
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     csv_path = args.output_dir / "action_trials.csv"
     _write_csv(records, csv_path)
+    legacy_exceeding = sum(
+        bool(row.get("action_metrics", {}).get(action, {}).get(
+            "exceeds_legacy_displacement_cutoff", False))
+        for row in records for action in ACTION_ORDER
+    )
+    print(f"VALID_ACTIONS_OVER_ORIGINAL_25CM_CUTOFF={legacy_exceeding}")
     print("\nPer-action validity (valid / expected, in motion target):")
     for action_name in ACTION_ORDER:
         c = summary["action_counts"][action_name]
