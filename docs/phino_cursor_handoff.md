@@ -80,9 +80,43 @@ Compatibility decisions, recorded in `provenance.json`:
 3. **Held-out similarity saturation.** Under the train-fit normalizer, 56% of held-out pairs have similarity below 1e-3. Sphere push displacement and yaw-rate channels reach up to 40 training standard deviations.
 4. **Static-image identifiability** (above). In `train/`, 70 of 406 pairs share one image but have different physics targets.
 
+## Milestone status: action-conditioned visual observability pilot (done, Nov 5, 2026)
+
+`scripts/phino_visual_observability_pilot.py` (commit `a8f813b`) replays saved valid `push_x` traces kinematically. It does not regenerate physics. Each geometry's camera, lighting, and action are fixed, and the replay reproduces saved traces exactly. Run with `MUJOCO_GL=egl .venv/bin/python scripts/phino_visual_observability_pilot.py`; full output goes to `results/phino_visual_observability_v1/` (Brown only), with summaries and figures in `docs/results/phino_visual_observability_v1/`. Full write-up: `docs/phino_experiment_log.md`.
+
+- **Response images distinguish configurations; static images do not.** At 224 px, 250 of 252 within-geometry pairs differ by at least 1 px in final object position after one push. One grid step moves the object 8–25 px.
+- **One horizontal push reveals one mass–friction combination, not both.**
+  - The closest pairs always trade mass against friction (cube 0.30 kg/0.4 vs 0.35 kg/0.3 differ by 0.7 px).
+  - `lateral_flick` responds to nearly the same combination (0.7–5.6° apart for cube, cow, and cartons), so it doesn't break the confound.
+  - The time course adds little beyond the final frame.
+  - Sphere push displacement depends on mass only (μ exponent −0.04).
+- **New data-validity problem in the existing grid.** The generator's settle step depends on friction, so starting poses differ across friction levels:
+
+  | Geometry | Start offset across friction | Residual motion at push start |
+  |---|---|---|
+  | cow | 25 mm, 45° | none |
+  | bunny | 8 mm, 15° | still moving (1.1 rad/s) |
+  | sphere | 3 mm, 3.6° | still moving (0.55 rad/s) |
+  | blue carton | 2 mm, 0.9° | none |
+  | white carton, cube, nut | matched | none |
+
+  Consequences:
+  - The simulated pre-push images for cow and bunny already differ by friction.
+  - Absolute quaternion fingerprint channels carry the settle orientation, so earlier cow/bunny trajectory analyses may partly reflect settling.
+  - The PHINO v0 export images are unaffected (one PHINO-settled render per geometry).
+
+### Needs research-owner decision
+5. **Settle confound.** Options: restrict image/fingerprint studies to matched-start geometries; use start-aligned renders; or regenerate with a friction-independent settle, for example settling at nominal friction before applying the configuration. Regenerating needs an explicit specification.
+6. **Action design.** Separating mass from friction visually needs a confound-breaking action, such as two push magnitudes or a lift that is valid across the mass range. This also requires new simulation and a specification.
+7. **Frozen DINOv2 probe.** Not appropriate yet as a test of separate mass/friction recovery. It is reasonable now only as a narrow signal-preservation diagnostic:
+   - inputs: start-aligned (initial, final) pairs, using patch tokens;
+   - target: log displacement or the fitted mass–friction combination;
+   - geometries: matched-start only;
+   - baselines: segmentation-centroid and privileged-state.
+
 ## Next task
 
-Not more export work. The research owner chooses the next experiment (static-image baseline vs. action-conditioned observations, etc.) after reviewing the four items above. Do not launch PHINO training until then.
+The research owner decides items 5–7 (and 1–4 for any PHINO training). The cheapest informative next step is the narrow DINOv2 signal-preservation probe described in item 7. Do not launch PHINO training or new physics sweeps until those decisions are made.
 
 ## Handoff protocol
 
