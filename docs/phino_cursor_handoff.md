@@ -158,9 +158,11 @@ Ran because the research owner asked for a bounded learning comparison on existi
 - 15 leave-one-geometry-out runs finished (clip seeds 0 and 1, plus a static-image control). No training job is still running.
 - On 292 configurations with all four actions, contrastive clip fine-tuning beats frozen DINOv2 on leave-one-geometry-out (four interventions: mass/friction nMAE about 0.60/0.61 versus 0.76/0.86) and beats the static control (about 0.86/0.83). Both seeds agree. The static control does not improve on frozen features.
 - An image-position tracker on the same clips is far better (about 0.04/0.12). Pooled DINOv2 features do not preserve that image-space motion across geometries (position-decoding R² ≤ 0.2, often negative).
-- A frozen 4×4 patch readout narrows the gap only partly (four interventions: 0.67/0.59). Fine-tuned spatial features are probed in `results/phino_action_learning_v2/probes_grid_ft/` and recorded in the experiment log.
+- A frozen 4×4 patch readout narrows the gap only partly (four interventions: 0.67/0.59). The Brown fine-tuned spatial probe was started in `results/phino_action_learning_v2/probes_grid_ft/`; completion and its scores are not verified from GitHub.
 
 ## Next task
+
+Finish the spatial diagnostic on Brown from this branch. Run `.venv/bin/python scripts/phino_spatial_diagnostic.py --out results/phino_action_learning_v2/spatial_diagnostic_01` from the SIMPACT root (choose a new suffix if it exists). The script checks the compact existing probe summaries, reuses completed LOGO cells, evaluates missing cells with existing banks, and computes per-action and per-fold position decoding. It writes small comparison tables only into a fresh directory. Preserve all earlier results. Review and commit the verified tables, including the two seeds separately. Until then do not attribute the tracker gap to the training objective.
 
 Do not generate a new physics grid, and do not start another training sweep, until R1–R6 in the spec's §10 are approved and a re-registered Stage 3 gate passes. On the current clips the ceiling is the image-position tracker, not another pooled-feature fine-tune. The open scientific question is whether a spatial readout can keep that motion signal; the frozen 4×4 result says only partly.
 
