@@ -1,6 +1,6 @@
 # SIMPACT research agent instructions
 
-This repository contains SIMPACT plus experimental SIMPACT → PHINO synthetic-physics work. For PHINO tasks, start with `docs/phino_cursor_handoff.md`, then read `docs/phino_pretraining_integration_contract.md` and only the relevant code. The handoff summarizes context but **source code and actual manifests take precedence**. PHINO's training code lives in the separate repository `arajshah/phino`.
+This repository contains SIMPACT plus experimental SIMPACT → PHINO synthetic-physics work. For PHINO tasks, first read `docs/phino_cursor_handoff.md` (the current project state) and `docs/phino_pretraining_integration_contract.md` (the implementation contract), then inspect the relevant code. On initial onboarding, also read `docs/phino_initial_handoff.md` once for the complete research history; on subsequent tasks consult it only when historical context is needed. If that file is absent, continue with the current handoff and contract rather than blocking work. The handoff summarizes context but **source code and actual manifests take precedence**. PHINO's training code lives in the separate repository `arajshah/phino`.
 
 ## Working rules
 
@@ -15,6 +15,12 @@ This repository contains SIMPACT plus experimental SIMPACT → PHINO synthetic-p
 - Add lightweight tests and self-tests for adapters. Run tests available in the current environment; accurately report what you could not execute. GPU/MuJoCo checks on Brown may require a human-run command.
 - Do not launch long training or expensive simulation sweeps unless requested. The current next task is **dataset export and one dataloader smoke test**, not physics debugging or full PHINO fine-tuning.
 - When a research design choice is ambiguous or could make results scientifically invalid, document the issue and request human review rather than hiding it behind code.
+
+## Research records
+
+- Keep `docs/phino_cursor_handoff.md` concise and current. Update it after major milestones with verified progress, blockers, commit references, and the next task; do not turn it into a transcript.
+- Use `docs/phino_experiment_log.md` for reproducible experiments, including hypothesis, dataset and split, code revision, metrics, limitations, and conclusions. Create it when there is an actual experiment to record; do not fabricate results or force an empty log.
+- Preserve `docs/phino_initial_handoff.md` as a historical onboarding snapshot. Do not overwrite or constantly append to it; prefer the current handoff for changing status.
 
 ## First code task
 
