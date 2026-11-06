@@ -158,11 +158,12 @@ Ran because the research owner asked for a bounded learning comparison on existi
 - 15 leave-one-geometry-out runs finished (clip seeds 0 and 1, plus a static-image control). No training job is still running.
 - On 292 configurations with all four actions, contrastive clip fine-tuning beats frozen DINOv2 on leave-one-geometry-out (four interventions: mass/friction nMAE about 0.60/0.61 versus 0.76/0.86) and beats the static control (about 0.86/0.83). Both seeds agree. The static control does not improve on frozen features.
 - An image-position tracker on the same clips is far better (about 0.04/0.12). Pooled DINOv2 features do not preserve that image-space motion across geometries (position-decoding R² ≤ 0.2, often negative).
-- A frozen 4×4 patch readout narrows the gap only partly (four interventions: 0.67/0.59). Fine-tuned spatial features are probed in `results/phino_action_learning_v2/probes_grid_ft/` and recorded in the experiment log.
+- Spatial diagnostic, no retraining: `scripts/phino_spatial_diagnostic.py` and `docs/results/phino_action_learning_v2/spatial_diagnostic/`. The fine-tuned 4×4 probe directory was already complete. On the matched subsets, four interventions, leave-one-geometry-out nMAE is frozen pooled 0.76/0.86, fine-tuned pooled about 0.60/0.60, frozen 4×4 0.67/0.59, fine-tuned 4×4 about 0.53/0.49, tracker 0.04/0.12. Both seeds agree on those averages. Cow mass does not improve when the frozen 4×4 readout is fine-tuned.
+- Position decoding stays near zero (best pooled R² 0.20). Within a held-out geometry it is negative, and the seeds improve it together in only 7 of 16 cells on the larger geometries. The 4×4 readout and the contrastive update each recover part of the mass/friction signal, and the tracker gap remains. The pattern fits neither a pure pooling bottleneck nor a pure objective failure. Per-geometry tables are in the experiment log.
 
 ## Next task
 
-Do not generate a new physics grid, and do not start another training sweep, until R1–R6 in the spec's §10 are approved and a re-registered Stage 3 gate passes. On the current clips the ceiling is the image-position tracker, not another pooled-feature fine-tune. The open scientific question is whether a spatial readout can keep that motion signal; the frozen 4×4 result says only partly.
+Do not generate a new physics grid, and do not start another training sweep, until R1–R6 in the spec's §10 are approved and a re-registered Stage 3 gate passes. On these clips the image-position tracker remains the ceiling. Another pooled fine-tune, or another linear 4×4 readout of the same backbones, is not the indicated next measurement.
 
 ## Handoff protocol
 

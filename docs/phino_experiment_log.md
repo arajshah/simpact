@@ -326,4 +326,54 @@ Leave-one-geometry-out, mean nMAE (mass / friction):
 
 **Conclusion.** Action-conditioned images on this grid contain mass and friction information that a static image does not: a tracker that reads object position already predicts both, and more interventions help it. Contrastive fine-tuning of pooled DINOv2 features preserves some of that information across geometries and beats a static-image fine-tune, but it remains several times worse than the tracker. The frozen spatial readout does not close the gap. Do not treat this as evidence that PHINO has learned transferable physical properties, and do not generate the v3.1 grid until R1–R6 are approved.
 
-**Resumed after the interrupted session.** Fine-tuned 4×4 features were already extracted (`results/phino_action_learning_v2/features/grid_ft_*.npz`, finished 02:21). They were not probed. That evaluation was started into a new directory, `results/phino_action_learning_v2/probes_grid_ft/`, without rerunning training or overwriting `probes_all` or `probes_grid_frozen`. Its numbers are appended below when the run finishes.
+**Spatial-readout diagnostic, completed the same day.** `results/phino_action_learning_v2/probes_grid_ft/` was already finished: 140 result rows, 40460 predictions, all finite, both clip seeds plus the static control, both splits, and position decoding. It uses the same nine subsets as `probes_grid_frozen`. No model was retrained and no features were regenerated. `scripts/phino_spatial_diagnostic.py` checks that completeness and recomputes per-geometry position R² from the saved banks. Its pooled R² matches the probe files. Tables: [`docs/results/phino_action_learning_v2/spatial_diagnostic/summary.md`](./results/phino_action_learning_v2/spatial_diagnostic/summary.md).
+
+The nine subsets are every single action, the full four-action set, `push_lo+push_hi`, `push_hi+toss`, and `push_lo+push_hi+toss`. Means at one and at four interventions therefore match the curves above. Means at two and three interventions do not: they are not averages over every combination.
+
+Leave-one-geometry-out mean nMAE on these subsets (mass / friction):
+
+| Representation | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|
+| Frozen pooled | 0.88 / 0.95 | 0.83 / 0.79 | 0.75 / 0.79 | 0.76 / 0.86 |
+| Fine-tuned pooled, seed 0 | 0.87 / 0.85 | 0.69 / 0.68 | 0.61 / 0.54 | 0.61 / 0.60 |
+| Fine-tuned pooled, seed 1 | 0.89 / 0.84 | 0.71 / 0.66 | 0.61 / 0.54 | 0.60 / 0.61 |
+| Frozen 4×4 | 0.81 / 0.84 | 0.72 / 0.58 | 0.66 / 0.54 | 0.67 / 0.59 |
+| Fine-tuned 4×4, seed 0 | 0.84 / 0.83 | 0.64 / 0.59 | 0.55 / 0.45 | 0.55 / 0.50 |
+| Fine-tuned 4×4, seed 1 | 0.80 / 0.84 | 0.68 / 0.58 | 0.55 / 0.42 | 0.51 / 0.48 |
+| Image-position tracker | 0.47 / 0.58 | 0.09 / 0.12 | 0.07 / 0.11 | 0.04 / 0.12 |
+
+Four interventions, per held-out geometry. Each pair is mass / friction. In the fine-tuned columns the first pair is seed 0 and the second is seed 1.
+
+| Geometry | n | Frozen pooled | Fine-tuned pooled | Frozen 4×4 | Fine-tuned 4×4 | Tracker |
+|---|---|---|---|---|---|---|
+| Blue carton | 46 | 0.57 / 0.77 | 0.50 / 0.56, 0.50 / 0.51 | 0.56 / 0.51 | 0.46 / 0.51, 0.47 / 0.43 | 0.03 / 0.07 |
+| Cow | 85 | 0.75 / 0.96 | 0.68 / 0.78, 0.66 / 0.76 | 0.62 / 0.93 | 0.66 / 0.71, 0.62 / 0.67 | 0.06 / 0.17 |
+| Cube | 85 | 1.00 / 0.78 | 0.63 / 0.46, 0.65 / 0.44 | 0.89 / 0.43 | 0.59 / 0.36, 0.52 / 0.33 | 0.04 / 0.10 |
+| Nut | 70 | 0.60 / 0.88 | 0.56 / 0.56, 0.53 / 0.63 | 0.54 / 0.43 | 0.43 / 0.43, 0.42 / 0.46 | 0.05 / 0.13 |
+| White carton | 6 | 0.96 / 0.90 | 0.61 / 0.80, 0.63 / 0.89 | 0.70 / 0.52 | 0.58 / 0.53, 0.55 / 0.52 | 0.02 / 0.03 |
+
+Per-geometry tables for one, two, and three interventions are in the summary. Within a geometry, four interventions, the tracker is 0.08 / 0.19 and the best visual readout (fine-tuned 4×4) is about 0.32 / 0.54. The large remaining gap is the cross-geometry one.
+
+Position decoding, pooled leave-one-geometry-out R² (the stored metric):
+
+| Representation | push_x | push_lo | push_hi | toss |
+|---|---|---|---|---|
+| Frozen pooled | −0.54 | 0.08 | 0.02 | 0.04 |
+| Fine-tuned pooled, seed 0 / seed 1 | −0.32 / −0.35 | 0.19 / 0.16 | 0.04 / 0.04 | −0.01 / −0.01 |
+| Frozen 4×4 | −0.36 | 0.18 | 0.04 | 0.02 |
+| Fine-tuned 4×4, seed 0 / seed 1 | −0.24 / −0.27 | 0.20 / 0.20 | 0.08 / 0.07 | 0.02 / −0.03 |
+
+The best cell is 0.20. Averaged over actions, horizontal centroid shift is the only positive channel (frozen 4×4 about 0.32; fine-tuned 4×4 about 0.35–0.37). Vertical shift and log-area stay negative. Inside a held-out geometry, R² on the channels that actually vary is negative for every geometry. Both seeds improve that within-geometry R² together in 7 of 16 action–geometry cells once the six-configuration white carton is set aside, and in 10 of 20 cells if it is kept. Cube `push_x` is largely negative (about −14 to −18): the transferred linear map extrapolates badly there. Three toss channels are exactly constant for the blue carton, the cube, and the white carton, and those channels are omitted from the within-geometry R² only.
+
+The static-image 4×4 control, at four interventions, is 0.66 / 0.55. That sits next to frozen 4×4 (0.67 / 0.59) and behind clip-fine-tuned 4×4 (0.51–0.55 / 0.48–0.50). The static pooled control remains 0.86 / 0.83.
+
+**What this distinguishes.** The fine-tuned 4×4 numbers are a spatial readout of backbones trained with the pooled contrastive loss. The loss never saw the 4×4 features.
+
+- The renders contain the mass and friction signal: the tracker, which reads only the segmentation centroid and area, reaches 0.04 / 0.12 at four interventions on every held-out geometry.
+- Replacing the pooled descriptor with a 4×4 average, backbone held fixed, moves four-intervention nMAE from 0.76 / 0.86 to 0.67 / 0.59 and mean position R² from about −0.10 to −0.03. That is a real spatial effect. The tracker, at 0.04 / 0.12, remains far ahead, and position R² stays near zero.
+- Clip fine-tuning improves the averages for both seeds, on pooled features and on the 4×4 readout, and it beats the static control. Cow mass is the clear exception: frozen 4×4 is 0.62, and the two fine-tuned seeds are 0.66 and 0.62. Friction gains that both seeds share are cow and cube; blue carton, nut, and white carton move by about 0.03 or disagree in sign.
+- The same fine-tuning lifts pooled position R² by only a few hundredths. Both seeds agree on that small lift for `push_x`, `push_lo`, and `push_hi`. The level stays near zero, and the within-geometry gains are not shared across geometries.
+
+A pure spatial-information bottleneck would have the 4×4 readout approach the tracker while the backbone stayed frozen. A pure objective limitation would have frozen spatial features carry the position signal and the contrastive update remove it, or would have the update leave mass and friction unchanged. Neither pattern is what these tables show. The evidence supports a representation gap: image position predicts the labels, and a linear probe of these DINOv2 features keeps only part of that information. Two hypotheses are consistent with the gap and were not tested: a mask-aligned or finer readout could still find the centroid in the patch tokens, and an objective aimed at image motion could teach that centroid more directly than trajectory-similarity SoftInfoNCE.
+
+**Added limitations.** White carton has six configurations. Two- and three-intervention means use the representative subsets listed above. Within-geometry position R² is undefined on constant toss channels and is unstable at n = 6. The 4×4 grid is a linear average of patch tokens, not a learned spatial head.
