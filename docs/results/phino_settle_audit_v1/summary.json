@@ -1,0 +1,240 @@
+{
+  "format": "simpact_phino_settle_audit_v1",
+  "command": [
+    "scripts/audit_phino_settle_confound.py"
+  ],
+  "simpact_git": {
+    "path": "/cs/local/nbu/people/ashah264/simpact",
+    "commit": "89a34b7ec871d70787f01ca8d8ed436571f7e55f",
+    "branch": "phino-physics-experiments",
+    "tracked_changes": true
+  },
+  "phino_git": {
+    "path": "/cs/local/nbu/people/ashah264/phino",
+    "commit": "3f1134d523559e52adce08bdac8e0b711c3c722c",
+    "branch": "eval/grouped-physics-probes-oct28",
+    "tracked_changes": false
+  },
+  "source_grid": "/cs/local/nbu/people/ashah264/simpact/results/phino_mesh_grid_cutoff_1m_v1",
+  "manifest_sha256": "69d208de7d05cef77b40fdc6624837b9781a9c283841e3544f3d4dc7eb9d66d2",
+  "export_dir": "/cs/local/nbu/people/ashah264/simpact/data/phino_simpact_v0",
+  "clean_thresholds": {
+    "offset_m": 0.001,
+    "rotation_deg": 1.0,
+    "linear_speed_m_s": 0.01,
+    "angular_speed_rad_s": 0.1
+  },
+  "settle_by_geometry": {
+    "rigid_0103_cc48978ad2__white_coconut_milk_carton": {
+      "start_offset_across_friction_m": 0.0008085215131401315,
+      "start_rotation_across_friction_deg": 0.24888361338218531,
+      "start_offset_across_mass_m": 1.56843562761301e-15,
+      "max_start_linear_speed_m_s": 0.0016271083135617113,
+      "max_start_angular_speed_rad_s": 0.012580791137806115,
+      "max_zero_action_displacement_m": 4.161290670948969e-05,
+      "max_zero_action_rotation_deg": 0.0457053567891744,
+      "classification": "clean"
+    },
+    "rigid_0103_cc48978ad2__blue_milk_carton": {
+      "start_offset_across_friction_m": 0.0021455150048925744,
+      "start_rotation_across_friction_deg": 0.9284633078287213,
+      "start_offset_across_mass_m": 3.5017429036008758e-15,
+      "max_start_linear_speed_m_s": 0.00010059705243385569,
+      "max_start_angular_speed_rad_s": 0.0008006731290333138,
+      "max_zero_action_displacement_m": 0.00018074621946921108,
+      "max_zero_action_rotation_deg": 0.11864284073042781,
+      "classification": "settle_confounded"
+    },
+    "object_bunny_c76f3d33cb__mesh_bunny": {
+      "start_offset_across_friction_m": 0.008007445474962871,
+      "start_rotation_across_friction_deg": 14.972228764448166,
+      "start_offset_across_mass_m": 2.598731256080064e-11,
+      "max_start_linear_speed_m_s": 0.03422189319905441,
+      "max_start_angular_speed_rad_s": 1.1188729013955356,
+      "max_zero_action_displacement_m": 0.0019278553162609686,
+      "max_zero_action_rotation_deg": 2.50923091166273,
+      "classification": "settle_confounded"
+    },
+    "object_cow_ae86a83b14__mesh_cow": {
+      "start_offset_across_friction_m": 0.025248552419112884,
+      "start_rotation_across_friction_deg": 44.62945758431243,
+      "start_offset_across_mass_m": 1.0618775043243533e-15,
+      "max_start_linear_speed_m_s": 7.471973248598046e-09,
+      "max_start_angular_speed_rad_s": 2.1275927654450491e-07,
+      "max_zero_action_displacement_m": 2.3174173311977377e-10,
+      "max_zero_action_rotation_deg": 6.389056940260397e-06,
+      "classification": "settle_confounded"
+    },
+    "object_cube_c3319640e9__mesh_cube": {
+      "start_offset_across_friction_m": 9.561165140051252e-06,
+      "start_rotation_across_friction_deg": 0.0012845386980652354,
+      "start_offset_across_mass_m": 1.1159549173787578e-06,
+      "max_start_linear_speed_m_s": 0.00022319098340786546,
+      "max_start_angular_speed_rad_s": 0.004652553791106563,
+      "max_zero_action_displacement_m": 2.6762247027212764e-06,
+      "max_zero_action_rotation_deg": 0.0014606777138706565,
+      "classification": "clean"
+    },
+    "object_nut_8cdaf17787__mesh_nut": {
+      "start_offset_across_friction_m": 9.297647061416357e-06,
+      "start_rotation_across_friction_deg": 0.002869817082568465,
+      "start_offset_across_mass_m": 6.142430849007574e-16,
+      "max_start_linear_speed_m_s": 0.00042667876468297845,
+      "max_start_angular_speed_rad_s": 0.008929238581468435,
+      "max_zero_action_displacement_m": 2.8347976911685944e-06,
+      "max_zero_action_rotation_deg": 0.015496761526670276,
+      "classification": "clean"
+    },
+    "object_sphere_954b0cf9a6__mesh_sphere": {
+      "start_offset_across_friction_m": 0.0031167377817887462,
+      "start_rotation_across_friction_deg": 3.5963616392639257,
+      "start_offset_across_mass_m": 4.61848167585189e-12,
+      "max_start_linear_speed_m_s": 0.026598707291971155,
+      "max_start_angular_speed_rad_s": 0.5496251289786723,
+      "max_zero_action_displacement_m": 0.008658885506587579,
+      "max_zero_action_rotation_deg": 8.876957106649169,
+      "classification": "settle_confounded"
+    }
+  },
+  "phino_similarity": {
+    "normalizer_reproduced": true,
+    "sigma_original": 2.4253643519093537,
+    "sigma_start_relative": 1.788091582235061,
+    "train": {
+      "pairs": 406,
+      "rank_corr": 0.7645842887222198,
+      "pearson": 0.7525986964352435,
+      "mean_abs_change": 0.14392377143500912,
+      "by_category": {
+        "cross_geometry": {
+          "pairs": 336,
+          "mean_abs_change": 0.15162565781373963,
+          "max_abs_change": 0.4601993435248388,
+          "rank_corr": 0.7418935420396955
+        },
+        "within_clean": {
+          "pairs": 30,
+          "mean_abs_change": 0.05780319722648518,
+          "max_abs_change": 0.10073466598655878,
+          "rank_corr": 0.9848720800889877,
+          "friction_pairs": 24,
+          "settle_swap_only_similarity_min": 0.9999982439859174,
+          "settle_swap_only_similarity_mean": 0.9999994985507085,
+          "median_settle_distance_share": 7.481727151620393e-09
+        },
+        "within_settle_confounded": {
+          "pairs": 40,
+          "mean_abs_change": 0.14381835651006575,
+          "max_abs_change": 0.4473586449661495,
+          "rank_corr": 0.9752345215759851,
+          "friction_pairs": 32,
+          "settle_swap_only_similarity_min": 0.8260552603249162,
+          "settle_swap_only_similarity_mean": 0.9538783085496848,
+          "median_settle_distance_share": 0.002517259125942844
+        }
+      }
+    },
+    "heldout": {
+      "pairs": 55,
+      "rank_corr": 0.9752525252525256,
+      "pearson": 0.9996644148787149,
+      "mean_abs_change": 0.009230455855579692,
+      "by_category": {
+        "cross_geometry": {
+          "pairs": 30,
+          "mean_abs_change": 1.595992822874428e-05,
+          "max_abs_change": 0.00014271358309452512,
+          "rank_corr": 0.9839822024471635
+        },
+        "within_clean": {
+          "pairs": 15,
+          "mean_abs_change": 0.022629709164016343,
+          "max_abs_change": 0.042344758056168,
+          "rank_corr": 0.9964285714285712,
+          "friction_pairs": 12,
+          "settle_swap_only_similarity_min": 0.9999999999575085,
+          "settle_swap_only_similarity_mean": 0.9999999999863506,
+          "median_settle_distance_share": 1.0133658062483742e-10
+        },
+        "within_settle_confounded": {
+          "pairs": 10,
+          "mean_abs_change": 0.016775063674977563,
+          "max_abs_change": 0.0450235920455968,
+          "rank_corr": 0.9272727272727272,
+          "friction_pairs": 8,
+          "settle_swap_only_similarity_min": 0.9855755437952536,
+          "settle_swap_only_similarity_mean": 0.9906975525908883,
+          "median_settle_distance_share": 0.0021411628359382187
+        }
+      }
+    },
+    "settle_swap_by_geometry": {
+      "object_bunny_c76f3d33cb__mesh_bunny": {
+        "class": "settle_confounded",
+        "friction_pairs": 8,
+        "settle_swap_only_similarity_mean": 0.9491839119181626,
+        "settle_swap_only_similarity_min": 0.8828762220213434,
+        "actual_similarity_mean": 0.4072840146367527,
+        "median_settle_distance_share": 0.040110649040685314
+      },
+      "object_cow_ae86a83b14__mesh_cow": {
+        "class": "settle_confounded",
+        "friction_pairs": 12,
+        "settle_swap_only_similarity_mean": 0.910898423204669,
+        "settle_swap_only_similarity_min": 0.8260552603249162,
+        "actual_similarity_mean": 0.6583582823813903,
+        "median_settle_distance_share": 0.15882831619922794
+      },
+      "object_cube_c3319640e9__mesh_cube": {
+        "class": "clean",
+        "friction_pairs": 12,
+        "settle_swap_only_similarity_mean": 0.9999999999863506,
+        "settle_swap_only_similarity_min": 0.9999999999575085,
+        "actual_similarity_mean": 0.9179390681122177,
+        "median_settle_distance_share": 1.0133658062483745e-10
+      },
+      "object_nut_8cdaf17787__mesh_nut": {
+        "class": "clean",
+        "friction_pairs": 12,
+        "settle_swap_only_similarity_mean": 0.9999999996667892,
+        "settle_swap_only_similarity_min": 0.9999999992788529,
+        "actual_similarity_mean": 0.7744377311063518,
+        "median_settle_distance_share": 1.182749335614356e-09
+      },
+      "object_sphere_954b0cf9a6__mesh_sphere": {
+        "class": "settle_confounded",
+        "friction_pairs": 8,
+        "settle_swap_only_similarity_mean": 0.9906975525908883,
+        "settle_swap_only_similarity_min": 0.9855755437952536,
+        "actual_similarity_mean": 0.015652408155592587,
+        "median_settle_distance_share": 0.002141162835938219
+      },
+      "rigid_0103_cc48978ad2__blue_milk_carton": {
+        "class": "settle_confounded",
+        "friction_pairs": 12,
+        "settle_swap_only_similarity_mean": 0.9999877916490485,
+        "settle_swap_only_similarity_min": 0.9999755692482183,
+        "actual_similarity_mean": 0.768869335001444,
+        "median_settle_distance_share": 4.1378021284916574e-05
+      },
+      "rigid_0103_cc48978ad2__white_coconut_milk_carton": {
+        "class": "clean",
+        "friction_pairs": 12,
+        "settle_swap_only_similarity_mean": 0.9999989974346276,
+        "settle_swap_only_similarity_min": 0.9999982439859174,
+        "actual_similarity_mean": 0.5811049158152393,
+        "median_settle_distance_share": 1.8506185951367098e-06
+      }
+    }
+  },
+  "ridge": {
+    "published_scores_reproduced": true,
+    "n_reproduced_cells": 40,
+    "clean_geometries": [
+      "object_cube_c3319640e9__mesh_cube",
+      "object_nut_8cdaf17787__mesh_nut",
+      "rigid_0103_cc48978ad2__white_coconut_milk_carton"
+    ],
+    "sphere": "object_sphere_954b0cf9a6__mesh_sphere"
+  }
+}

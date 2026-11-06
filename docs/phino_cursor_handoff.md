@@ -105,18 +105,41 @@ Compatibility decisions, recorded in `provenance.json`:
   - Absolute quaternion fingerprint channels carry the settle orientation, so earlier cow/bunny trajectory analyses may partly reflect settling.
   - The PHINO v0 export images are unaffected (one PHINO-settled render per geometry).
 
-### Needs research-owner decision
-5. **Settle confound.** Options: restrict image/fingerprint studies to matched-start geometries; use start-aligned renders; or regenerate with a friction-independent settle, for example settling at nominal friction before applying the configuration. Regenerating needs an explicit specification.
-6. **Action design.** Separating mass from friction visually needs a confound-breaking action, such as two push magnitudes or a lift that is valid across the mass range. This also requires new simulation and a specification.
-7. **Frozen DINOv2 probe.** Not appropriate yet as a test of separate mass/friction recovery. It is reasonable now only as a narrow signal-preservation diagnostic:
-   - inputs: start-aligned (initial, final) pairs, using patch tokens;
-   - target: log displacement or the fitted mass–friction combination;
-   - geometries: matched-start only;
-   - baselines: segmentation-centroid and privileged-state.
+## Research plan (approved Nov 5, 2026): identifiability before representation learning
+
+Central question: **which physical interventions make hidden object properties identifiable, and can learned visual representations preserve that information?** The plan has four stages, each gated on research-owner approval:
+1. audit the existing results;
+2. write the v3 specification;
+3. run a state-only identifiability pilot;
+4. representation learning: render action-conditioned observations; frozen DINOv2 linear probes vs PHINO contrastive fine-tuning on identical inputs, splits, and protocol; plus a static-image negative control.
+
+### Stage 1: audit (done)
+`scripts/audit_phino_settle_confound.py` (commit `5d1c91d`); outputs in `docs/results/phino_settle_audit_v1/`; full write-up in the experiment log. The audit reproduces all 40 published ridge cells exactly.
+
+| Earlier result | Verdict |
+|---|---|
+| Within-geometry recovery on held-out physics | Holds on clean geometries (friction about 30% better than baseline, mass about 10%) |
+| Friction transfer to held-out geometries | Holds (0.045 vs 0.067) |
+| Mass transfer to held-out geometries | Weaker on clean test objects (0.0283 vs published 0.0266; baseline 0.0333) |
+| Sphere out-of-distribution failure | Holds (settle drift is 1.7% of the sphere's response) |
+| "Mixed" sphere-inclusion result | Holds as mixed |
+| v0 PHINO within-geometry similarities | Contaminated for cow (settle-only swap drops similarity to as low as 0.83) and bunny (settling motion up to 14% of its response) |
+| v0 PHINO cross-geometry similarities | Mostly reflect mesh body-frame conventions (rank correlation 0.74 vs start-relative). **Do not train on v0 similarities.** |
+
+### Stage 2: v3 specification (drafted, awaiting approval)
+[`docs/phino_v3_identifiability_spec.md`](./phino_v3_identifiability_spec.md) proposes:
+- a canonical at-rest start with acceptance checks plus a zero-action control;
+- pure centre-of-mass pushes at two strengths (`push_lo`, `push_hi`);
+- a friction-independent `toss` replacing the v2 lift;
+- start-relative recording;
+- pre-registered, validity-only candidate selection;
+- Stage 3 metrics: local Jacobian/Cramér–Rao identifiability, off-grid held-out prediction, confusability, and solver robustness. Hypotheses and a gate are fixed in advance.
+
+A Coulomb toy model already predicts that two push strengths observed only at the final frame are nearly degenerate (about 5° apart). Time-resolved deceleration or the toss should break this, and Stage 3 must verify it on real contacts.
 
 ## Next task
 
-The research owner decides items 5–7 (and 1–4 for any PHINO training). The cheapest informative next step is the narrow DINOv2 signal-preservation probe described in item 7. Do not launch PHINO training or new physics sweeps until those decisions are made.
+Wait for approval of the v3 spec (its §9 lists the decisions). Then implement Stage 3 only (`scripts/phino_v3_identifiability_pilot.py`, state-only). Do not run the full v3 grid, render images, or train models before the Stage 3 gate passes and is approved.
 
 ## Handoff protocol
 

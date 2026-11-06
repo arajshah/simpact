@@ -115,3 +115,68 @@ A frozen DINOv2 probe is appropriate only as a narrower signal-preservation diag
 - **Restriction:** matched-start geometries only (white carton, cube, nut), or after the settle confound is fixed.
 
 Separating mass from friction visually first needs an action design that breaks the confound, for example two push magnitudes or a lift valid across the mass range. That requires new simulation and therefore an explicit experiment specification.
+
+## 2026-11-05: Stage 1 audit of friction-dependent settling
+
+**Question.** How much does the grid's friction-dependent settle affect (a) PHINO trajectory similarities in the v0 export and (b) the earlier ridge mass/friction recovery results? Which earlier conclusions survive?
+
+**Data and code.**
+- Grid `results/phino_mesh_grid_cutoff_1m_v1/` (manifest `69d208de…66d2`) and export `data/phino_simpact_v0/`, both read-only.
+- SIMPACT `5d1c91d`, `scripts/audit_phino_settle_confound.py`. The run used that code before it was committed.
+- Command: `MUJOCO_GL=egl .venv/bin/python scripts/audit_phino_settle_confound.py` writes to `results/phino_settle_audit_v1/`; a copy of the outputs is in [`docs/results/phino_settle_audit_v1/`](./results/phino_settle_audit_v1/).
+- MuJoCo was used only to recompute each configuration's settled start (the generator's own deterministic `build_model`) and to run a zero-action control: the object left untouched for the same 2.5 s window. No grid data was regenerated.
+
+**Integrity checks.**
+- The refit normalizer reproduces the exported `traj_norm.npz`.
+- All 40 published `recovery_scores.csv` cells were reproduced exactly before any re-partitioning.
+- The settle-swap transform is an exact identity when the orientation is unchanged (unit-tested).
+
+**Settle diagnostics.** A geometry is "clean" if its start differs by less than 1 mm and 1° across friction levels and it is essentially at rest; the classification is computed, not assigned by name. Mass never changes the start (≤0.001 mm).
+
+| Geometry | Start offset across friction | Zero-action drift over 2.5 s | Drift / `push_x` response (max) | Class |
+|---|---|---|---|---|
+| white carton | 0.8 mm, 0.25° | 0.04 mm | 0.4% | clean |
+| cube, nut | ≤0.01 mm, 0.00° | 0.00 mm | ≤0.2% | clean |
+| blue carton | 2.1 mm, 0.9° | 0.18 mm | 0.5% | confounded (static pose only) |
+| cow | 25.2 mm, 44.6° | 0.00 mm | 0% | confounded (static pose only) |
+| bunny | 8.0 mm, 15.0° | 1.93 mm, 2.5° | **14%** (median 5.5%) | confounded (pose + residual motion) |
+| sphere | 3.1 mm, 3.6° | 8.66 mm, 8.9° | 1.7% | confounded (pose + residual rolling) |
+
+**PHINO similarity audit** (v0 export; train-fit normalizer; seed 0).
+- **Static settle effect: material only for cow and bunny.** Swapping only the settled orientation between two friction levels, with an identical response, reduces PHINO similarity to:
+  - cow: mean 0.91, minimum 0.83, a median 16% share of the actual friction-pair distance;
+  - bunny: mean 0.95, minimum 0.88, a 4% share;
+  - sphere: at least 0.986;
+  - clean geometries and blue carton: 1.000.
+- **Bunny residual motion** contaminates its responses directly: settling motion is up to 14% of the push response.
+- **Within-geometry rankings are stable** under start-relative fingerprints: rank correlation 0.985 (clean) and 0.975 (confounded). Mean similarity changes are 0.058 and 0.144.
+- **New finding: cross-geometry similarities depend on mesh body-frame conventions.**
+  - Replacing absolute quaternions with rotation-since-start (and body-frame with world-frame angular velocity) changes train cross-geometry similarities by 0.152 on average (maximum 0.46), with rank correlation 0.742.
+  - Absolute orientation encodes each mesh's arbitrary authoring frame, not dynamics.
+  - PHINO's reference engine records the same absolute channels, so this also applies upstream. It is recorded here, not modified.
+- **Held-out saturation is unchanged** (held-out mean change 0.009). The earlier finding that 56% of held-out pairs fall below 1e-3 stands.
+
+**Ridge audit.** MAE is shown as ridge / training-mean baseline; mass in kg, friction as a coefficient.
+
+| Earlier result | Original | Clean held-out geometries only | Verdict |
+|---|---|---|---|
+| Physics holdout (leave one (m, μ) out; geometries seen), `push_x`+`push_y`, original features | mass 0.0319/0.0375, friction 0.0590/0.0749 | mass 0.0338/0.0378, friction 0.0511/0.0755; clean-only training: 0.0345/0.0375, 0.0554/0.0750 | **Holds.** Friction gain about 30%; mass gain modest, about 10%. |
+| Six-geometry object holdout, motion magnitudes, `push_x`+`push_y`, mass | 0.0266/0.0333 | 0.0283/0.0333 | **Weaker.** About half of the reported gain came from confounded test objects (0.0249). |
+| Six-geometry object holdout, no vertical position, `push_x`+`push_y`, friction | 0.0471/0.0667 | 0.0452/0.0667 | **Holds.** |
+| Sphere held out: extrapolation failure | MAE up to 0.20 kg / 0.59 | n/a | **Holds.** Sphere settle drift is 1.7% of its 480–720 mm push response, far too small to explain the failure. |
+| Matched with/without sphere: mixed | mixed | still mixed (e.g. no-vertical friction 0.0452 → 0.0494; original `push_x`+`push_y` friction 0.0546 → 0.0449) | **Holds as "mixed".** |
+| Seven-geometry object holdout (sphere included as a test geometry) | fails (friction 0.11–0.13 vs 0.067) | clean held-out geometries beat baseline on friction (0.045–0.055) | Failure is driven by the confounded test set, mainly the sphere. |
+
+The ridge features are start-relative positions plus speeds and orientation change from the first saved frame. The static settle offset therefore enters them only through its effect on dynamics. Training on the three clean geometries alone (two per fold) is unstable: for example, original features with all three non-lift actions give mass 0.106 and friction 0.32. So this audit cannot tell whether the cross-geometry gains *require* confounded training data.
+
+**Limitations.**
+- Three clean geometries.
+- The settle effect on dynamics (a different contact pose) cannot be separated from friction in the existing data.
+- The counterfactual swaps only orientation, not position (position channels are already start-relative).
+
+**Conclusion.**
+- **Still valid:** within-geometry recovery on held-out physics, with friction more recoverable than mass; friction transfer to clean held-out geometries; the sphere's out-of-distribution failure; the "mixed" sphere-inclusion result.
+- **Confounded:** any result evaluated on cow or bunny (pose, plus bunny residual motion), and part of the mass-transfer gain.
+- **Invalid as physical similarity:** v0 cross-geometry PHINO similarities.
+
+v3 must use matched, at-rest starts and start-relative orientation channels.
