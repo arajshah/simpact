@@ -12,7 +12,7 @@ Build a reproducible bridge between simulated controlled rigid-object interactio
 
 - SIMPACT upstream: `ShaoxiongYao/simpact`; user's fork: **`arajshah/simpact`**, branch **`phino-physics-experiments`**. Work starts here.
 - PHINO upstream: `Hongyang-Du/phino`; user's fork: **`arajshah/phino`**, branch **`main`**. Existing PHINO `train/`, `scripts/`, and `configs/` implement the intended data reader, normalizer, image renderer, and DINOv2-B/14 trainer.
-- Brown server's SIMPACT working directory: `/nbu/people/ashah264/simpact`. PHINO repository was previously at `/nbu/people/ashah264/phino` (verify). Python environment: `(simpact)`.
+- Brown server's SIMPACT working directory: `/nbu/people/ashah264/simpact` (same tree as `/cs/local/nbu/people/ashah264/simpact`). PHINO is at `/nbu/people/ashah264/phino`, checked out on `eval/grouped-physics-probes-oct28` (`3f1134d`); its contrastive loader is identical to `main`. Python environment: the SIMPACT uv `.venv` has MuJoCo 3.9, torch, and torchvision; rendering uses `MUJOCO_GL=egl` on a GPU node.
 - Existing **generated results are on Brown, NOT in GitHub**. A remote/cloud Cursor Agent cloning GitHub will not automatically see `results/phino_mesh_grid_cutoff_1m_v1/` or local MuJoCo assets. Use local/SSH-enabled execution for real data or a small deterministic synthetic fixture for cloud work. Do not upload entire datasets/checkpoints to Git just to supply the agent.
 - Two source repos are separate. Use relative links and explicit `--phino-root`/repo paths. Do not assume PHINO appears as a submodule of SIMPACT.
 
@@ -23,6 +23,7 @@ Build a reproducible bridge between simulated controlled rigid-object interactio
 - Four fixed wrench actions, ordered `push_x`, `push_y`, `grasp_lift_release`, `lateral_flick`. Each valid trace is `(50, 13)`: position relative to start (3), quaternion wxyz (4), linear velocity (3), angular velocity (3). A **complete** accepted fingerprint is `(200, 13)`, four traces concatenated in manifest action order. Rejected actions are missing. Neither physics labels nor validity flags enter the trajectory feature vectors.
 - Original grid: `results/phino_mesh_grid_v1/`, 0.25-m displacement cap; expanded grid: **`results/phino_mesh_grid_cutoff_1m_v1/`**, 1.0-m cap. Both contain manifest, `action_trajectories/`, `fingerprints/`, and `isolated_scenes/`. Do not modify them.
 - The 0.25-m cap systematically excluded sphere pushes. With 1.0 m, sphere `push_x` 9/9 and `push_y` 8/9 were valid in the analysis. Sphere rotation included substantial vertical-axis spinning (around 78–81% of squared angular speed), so do not assume sphere motion is pure rolling.
+- The 1.0-m grid has **40/63** complete fingerprints. **All 21 configurations at 0.25 kg are incomplete**: `grasp_lift_release` lifts with 2.973 N, which exceeds a 0.25 kg object's weight (≈2.45 N), so it overshoots 1.0 m. Exported complete fingerprints therefore cover only masses 0.30 and 0.35 kg. The other two exclusions are bunny 0.30/0.40 (lift tilt) and sphere 0.35/0.20 (`push_y` tilt).
 - `scripts/analyze_phino_pilot_grid.py` probes synthetic property recovery with ridge regression on **trajectory-derived** features. Results showed some transfer to nonsphere geometries and major extrapolation failure when sphere was held out; matched train-with/without-sphere experiments showed a mixed benefit. These are diagnostics, not PHINO training.
 - No more sphere sweeps or torque ablations are needed for immediate integration.
 
@@ -37,7 +38,7 @@ Read [`docs/phino_pretraining_integration_contract.md`](./phino_pretraining_inte
 5. `arajshah/phino/train/data/assets.py` has `render_multiview` for canonical 224×224 images. Validate on each isolated SIMPACT object scene. A separate renderer adapter is acceptable if this fails.
 6. `arajshah/phino/train/losses/contrastive.py` uses image pairs and pairwise dynamics similarity in SoftInfoNCE. This code uses a diagonal-weighted soft-label matrix, not a complete `B×B` dynamics target. Treat it as a modeling limitation, not a proven full similarity objective.
 
-Target new output (separate directory; **not** a rewrite of SIMPACT results):
+Originally planned output (separate directory; **not** a rewrite of SIMPACT results). As implemented, this layout appears once under `train/` and once under `heldout/` (see milestone status below):
 
 ```text
 data/phino_simpact_v0/
@@ -52,20 +53,36 @@ data/phino_simpact_v0/
 
 PHINO metadata must associate each accepted configuration with exactly one existing synthetic physics record and one image group for its geometry; reference `mass`, `static_friction`, `restitution`, `image_path`, `view_paths`, `fingerprint_path`, `global_idx`, `asset_id`, `image_group`. SIMPACT's single contact-friction coefficient is **not** a measured dynamic/static friction decomposition; restitution is **not** provided as a measured property. Explicitly document placeholder mapping decisions, do not invent scientific measurements. The existing PHINO static-image hard-negative mining protocol (same image/different randomly assigned physics) has an identifiability contradiction.
 
-## Immediate Cursor implementation assignment
+## Milestone status: dataset export and dataloader smoke test (done, Nov 5, 2026)
 
-**One narrowly scoped task:** Add `scripts/export_phino_dataset.py` in SIMPACT (and tests), taking `--grid-dir results/phino_mesh_grid_cutoff_1m_v1`, `--phino-root <path>`, `--output-dir data/phino_simpact_v0`.
+`scripts/export_phino_dataset.py` (commit `622693b`) plus `tests/test_export_phino_dataset.py` (18 synthetic-fixture tests). On Brown, from the SIMPACT root:
 
-Acceptance criteria:
+```bash
+.venv/bin/python scripts/export_phino_dataset.py --validate-only        # grid checks only
+MUJOCO_GL=egl .venv/bin/python scripts/export_phino_dataset.py \
+  --grid-dir results/phino_mesh_grid_cutoff_1m_v1 --phino-root /nbu/people/ashah264/phino \
+  --output-dir data/phino_simpact_v0                                     # refuses existing output
+MUJOCO_GL=egl .venv/bin/python -m pytest tests/test_export_phino_dataset.py
+```
 
-- Validate the source manifest, hashes/identifiers where present, action order, `(200,13)` fingerprint shapes, finiteness, no missing/duplicated pair mapping, and image/fingerprint associations.
-- Include only complete accepted fingerprints; report the exact number and reasons for omitted configurations. Do not impute or relabel rejections.
-- Render and validate at least a canonical image **once per geometry** from the isolated scene (rather than once per mass/friction setting). Do not treat multiple camera views as separate physics observations.
-- Emit PHINO-compatible metadata, sequential indices, stable image groups and relative paths, new fingerprint files, a 4-action fitted normalizer, pairwise similarities, provenance, deterministic seed, and explicit geometry-disjoint holdout grouping.
-- A lightweight smoke test must load the generated metadata/fingerprints and fetch one PHINO dataloader batch with finite similarities and usable images. Start with hard mining ratios both zero and a small precomputed similarity pair file. No PHINO training or checkpoint required.
-- Failure should be explicit if rendering is unavailable, source files are absent, format is wrong, label mapping is ambiguous, or the output exists. Include self-test with synthetic fixtures so cloud agents can test without the Brown dataset.
-- Avoid silent data leakage: train-only normalizer/label calibration and geometry-based split for later evaluations. If this cannot be implemented correctly without a data format change, explain the issue rather than fitting to all examples.
-- Commit descriptively to a branch, open a PR or present diff, list tests run, failures, and exact Brown commands. **Do not overwrite the two previous grids**.
+Output `data/phino_simpact_v0/` (gitignored, Brown only) has `train/` and `heldout/`, each a self-contained PHINO `data_dir`, plus `provenance.json`, `geometry_splits.json`, and `contact_sheet.png`. PHINO's contrastive loader samples every `metadata.json` entry, so **only `train/` may be passed to pretraining**. The normalizer is `TrajectoryNormalizer(4, 50)`, fit on `train/` only; `heldout/traj_norm.npz` is a byte copy.
+
+Verified on the real grid: all 40 accepted fingerprints were exported unchanged (train 29, heldout 11; 23 exclusions with reasons). The real PHINO `create_contrastive_dataloader` returned a batch from both splits with hard mining off. Both source grids are byte-identical afterwards. Details and numbers: `docs/phino_experiment_log.md`.
+
+Compatibility decisions, recorded in `provenance.json`:
+- `static_friction` and `dynamic_friction` both take SIMPACT's `contact_friction`, because MuJoCo has a single sliding coefficient.
+- `restitution` is a constant 0.0 placeholder, matching MuJoCo's default damping ratio of 1.0 under PHINO's mapping.
+- Renders use PHINO's scene composition, settling, and camera, but frame only the object body. PHINO's default framing includes the 1.2 m carton table and shrinks the carton to about 0.5% of the pixels.
+
+### Needs research-owner review before any training run
+1. **Geometry split.** The default split (seed 0, two held out) holds out **cube and sphere**. It was chosen by seed before any results existed. The sphere is the known out-of-distribution geometry, so this is a demanding extrapolation test. Re-export with `--holdout-geometry` if a different design is wanted.
+2. **Mass coverage.** Only 2 of 3 mass levels survive (see above). Fixing this requires a grid or validation-rule change, which needs an explicit experiment specification.
+3. **Held-out similarity saturation.** Under the train-fit normalizer, 56% of held-out pairs have similarity below 1e-3. Sphere push displacement and yaw-rate channels reach up to 40 training standard deviations.
+4. **Static-image identifiability** (above). In `train/`, 70 of 406 pairs share one image but have different physics targets.
+
+## Next task
+
+Not more export work. The research owner chooses the next experiment (static-image baseline vs. action-conditioned observations, etc.) after reviewing the four items above. Do not launch PHINO training until then.
 
 ## Handoff protocol
 

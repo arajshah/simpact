@@ -35,6 +35,8 @@ data/phino_simpact_v0/
   provenance.json                       # new adapter metadata, not required by PHINO
 ```
 
+**As implemented** (`scripts/export_phino_dataset.py`): this layout is written twice, as `train/` and `heldout/`, with whole geometries assigned to one split. PHINO's contrastive loader ignores `split` and samples every metadata entry, so a single combined directory would leak held-out geometries into pretraining. `provenance.json`, `geometry_splits.json`, and `contact_sheet.png` sit at the top level.
+
 For each **accepted full fingerprint**, one `metadata.json` entry must include at least:
 
 ```json
