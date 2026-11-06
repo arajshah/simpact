@@ -1,0 +1,9 @@
+target,interventions,geometries,both_seeds_lower_nmae,both_seeds_higher_nmae,mixed_or_tied
+mass,1,5,3,2,0
+mass,2,5,3,1,1
+mass,3,5,4,1,0
+mass,4,5,4,1,0
+friction,1,5,1,2,2
+friction,2,5,2,2,1
+friction,3,5,5,0,0
+friction,4,5,2,0,3
