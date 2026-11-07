@@ -178,7 +178,7 @@ Phase 2 feasibility only: a clamped planar spring assembly, not a learned repres
 
 ## Milestone status: AnyGoal contact-action diagnostic (done, Nov 7, 2026)
 
-Section 8 of `docs/research/PHINO-Problem-First-Memorandum-2026-11-07.md` was executed as a checkpoint audit. No new model was trained. Full write-up: `docs/phino_experiment_log.md`. Tables and figures: `docs/results/anygoal_contact_audit_v1/`.
+Section 8 of `docs/research/PHINO-Problem-First-Memorandum-2026-11-07.md` was executed as a checkpoint audit in commit `4c66439`. No new model was trained. Full write-up: `docs/phino_experiment_log.md`. Tables and figures: `docs/results/anygoal_contact_audit_v1/`.
 
 - Pinned AnyGoal `f0cf8c2`, SMWM source `9d22bcc`, model revision `b27f9dac`, data revision `1719e7da`. `sensorimotor_insertpeg.ckpt` matches the release sha256. Evaluation used torch 2.9.1+cu128 and MuJoCo 3.8.1.
 - SMWM seed 0, 50 evaluations, dataset-goal success: Insert-Peg 76% (paper 70), Avoid-Peg 78% (paper 74), Extract-Peg 28% (paper 24). All three are within 6 percentage points of the references. Insert-Peg is a base-task reference on the training file. Avoid and Extract trajectory hashes do not overlap that file.
