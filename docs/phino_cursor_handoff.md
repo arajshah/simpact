@@ -167,9 +167,18 @@ Phase 1 keeps the existing trajectory-similarity checkpoints and compares them w
 
 Trajectory similarity does not have a consistent advantage over generic InfoNCE. At four interventions the geometry-level paired difference is about 0.01 nMAE or smaller, and the seeds disagree in sign on several geometries. Direct supervision is not uniformly better: it lowers cow mass error and raises cube and white-carton mass error. The image-position tracker remains near 0.04 / 0.12.
 
+## Milestone status: elastic-reciprocity feasibility (done, Nov 6, 2026)
+
+Phase 2 feasibility only: a clamped planar spring assembly, not a learned representation. Write-up: `docs/phino_reciprocity_feasibility.md`. Tables and figures: `docs/results/phino_reciprocity_feasibility_v1/`. Code: `scripts/phino_reciprocity_feasibility.py`.
+
+- At 0.05 N, measured secants agree with the swapped measurement to within the pre-registered rule (worst mismatch 55 µm, about 1%). A contact stop and a 3 N load break that agreement (1.62 mm and 113 mm).
+- Straight, branched, L, and crank fixtures have four different optimal first actions. A fixed proximal push scores 0. The straight-beam action does not transfer.
+- A linearized spring model that uses the drawn geometry and the declared 4 N·m/rad rate selects the measured optimum on every fixture (regret 0). The privileged MuJoCo stiffness oracle matches it. Four scoring-port probes also select it, and do not identify action–action blocks or the nonlinear responses.
+- **NO-GO** for a learning experiment on this intervention. The task is already solved by the deployable mechanics baseline at zero simulator cost.
+
 ## Next task
 
-Do not start Phase 2. Do not generate a new physics grid, and do not launch another objective or readout sweep, until the research owner has reviewed this comparison. R1–R6 in the spec's §10 are still required before any new physics protocol. The gain over frozen DINOv2 is shared with generic contrastive fine-tuning, so it should not be attributed to the trajectory-similarity target.
+Do not start a Phase 2 learning experiment from the reciprocity result. The feasibility study is a NO-GO: the small-load response is reciprocal, the optimal first action changes with visible geometry, and a spring model that sees that geometry and the declared rate already picks the measured action. Review `docs/phino_reciprocity_feasibility.md` before any new intervention design. R1–R6 in the spec's §10 are still required before any new rigid-body physics protocol. The Phase 1 gain over frozen DINOv2 is shared with generic contrastive fine-tuning, so it should not be attributed to the trajectory-similarity target.
 
 ## Handoff protocol
 

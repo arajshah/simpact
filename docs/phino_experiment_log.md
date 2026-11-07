@@ -447,3 +447,32 @@ Scaling curves from one to four interventions do not create a trajectory lead th
 - Labels are synthetic simulator assignments. Renders are noiseless. The Stage 3 gate is still failed. These actions are the post-hoc fallback set.
 
 **Conclusion.** Trajectory-similarity supervision does not have a consistent advantage over generic contrastive learning on this probe. The two contrastive objectives match once each held-out geometry is counted once, and the seeds do not agree on a winner. Direct physical-property supervision is better on some geometries, especially cow mass, and worse on others, especially cube and white-carton mass. It does not dominate the contrastive runs, and none of the three approaches approaches the image-position tracker. The earlier improvement over frozen DINOv2 should not be credited to the trajectory target. Do not start a Phase 2 objective or a new physics grid on the strength of this comparison.
+
+## 2026-11-06: Elastic reciprocity feasibility
+
+**Question.** On a clamped flexible part, do small-force probes at two scoring ports give Maxwell–Betti labels that are accurate enough, and useful enough, to choose a first contact action on an unfamiliar geometry? Is that advantage still there once a spring model can see the geometry?
+
+**Hypothesis.** In the small-load regime the measured secant is symmetric to within the solver's uncertainty, and loading the scoring ports predicts the alignment and protection response of candidate actions that were not executed. The hypothesis under test is the intervention strategy, not a learned encoder. A deployable spring model is the baseline that can reject the strategy.
+
+**Data and code.**
+- New fixture. No use of `results/phino_mesh_grid_cutoff_1m_v1/` or the Phase 1 checkpoints.
+- `scripts/phino_reciprocity_feasibility.py`, tests in `tests/test_phino_reciprocity.py` (10 passed).
+- Command: `PYTHONPATH=scripts .venv/bin/python scripts/phino_reciprocity_feasibility.py`.
+- Local run: `results/phino_reciprocity_feasibility_v1/` (includes model XML and compliance matrices). Committed tables and figures: [`docs/results/phino_reciprocity_feasibility_v1/`](results/phino_reciprocity_feasibility_v1/). Full write-up: [`docs/phino_reciprocity_feasibility.md`](phino_reciprocity_feasibility.md).
+
+**Protocol.** Four planar spring assemblies (straight, 60° branch, L, crank), one shared goal point, and a utility fixed before the MuJoCo ranking. Candidate set: 8 ports × 4 directions × 2 forces. Acceptance of a reciprocal pair: displacement mismatch at most max(25 µm, 2% of the larger block). A clear action gap was pre-declared at 0.05 utility. The deployable baseline sees the drawing and the declared 4.0 N·m/rad rate. The oracle reads MuJoCo joint stiffness. Neither number was fit on the measured ranking.
+
+**Results.**
+- Settled repeats differ by 0. Solver settings that reach equilibrium move the tip reading by ≤ 0.35 µm. A 0.4 s settle does not equilibrate and shifts it by 57 µm.
+- Worst reciprocal mismatch at 0.05 N: 55, 19, 40, and 14 µm (1.1% or less). The secant matches the independent linearization to 0.42–0.97%.
+- Reversing 0.05 N flips the transverse displacement with error 0. A 3.0 N load is 113 mm away from the linear extrapolation. A stop 2.5 mm above the protected port leaves the 0.05 N reciprocal gap at 0.15 µm and raises the 0.15 N gap to 1.62 mm.
+- Measured optima: straight `a7 +y 0.05 N` (utility 0.861, gap 0.167); branch `a4 +y 0.15 N` (0.550, gap 0.049); L `a5 +x 0.15 N` (0.777, gap 0.093); crank `a7 +x 0.15 N` (0.802, gap 0.043). The straight-beam action scores 0.096, 0, and 0 on the other three. `a0 +y 0.05 N` scores 0 everywhere.
+- Deployable mechanics and the stiffness oracle both have regret 0. Doubling the assumed rate, which is not the baseline, has regret 0.05–0.37.
+- Four scoring-port probes recover the executed optimum (regret 0). Same-force error is at most 65 µm. Scaled to 0.15 N the error reaches 376 µm. Action–action blocks stay unidentified (21 or 28 pairs). The contact and 3 N responses are not identified.
+
+**Limitations.**
+- Lumped planar springs, gravity off, one declared rate, four geometries, one utility.
+- Branched and crank runner-up gaps are just under the 0.05 line.
+- The probes' success is a direct calculator on four labels, not a representation result.
+
+**Conclusion.** Reciprocity holds for this fixture at 0.05 N and fails at a contact stop and at 3 N, which is the expected content of the theorem rather than a new finding. Visible geometry does change the best first action, and a fixed action does not transfer. The deployable spring model already selects that action, so there is no equal-cost reason to collect reciprocal probes instead. **NO-GO** for a Phase 2 learning experiment on this intervention. Do not hide a spring rate in order to manufacture a residual.

@@ -1,0 +1,1025 @@
+{
+  "assumptions": {
+    "model": "planar revolute-spring assembly, lumped stiffness, not a continuum bracket",
+    "gravity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "public_stiffness_nm_per_rad": 4.0,
+    "damping_nm_s_per_rad": 0.5,
+    "timestep_s": 0.001,
+    "settle_s": 1.2,
+    "solver_tolerance": 1e-12,
+    "goal_m": [
+      0.4,
+      0.14
+    ],
+    "align_target_m": 0.005,
+    "protect_deadband_m": 0.0015,
+    "protect_scale_m": 0.0035,
+    "w_protect": 0.55,
+    "w_force": 0.18,
+    "force_reference_n": 0.15,
+    "force_magnitudes_n": [
+      0.05,
+      0.15
+    ],
+    "probe_force_n": 0.05,
+    "decision_floor_m": 2.5e-05,
+    "relative_block_tolerance": 0.02,
+    "clear_utility_gap": 0.05,
+    "fixed_blind_action": [
+      "a0",
+      "+y",
+      0.05
+    ],
+    "direct_budget_actions": [
+      [
+        "a0",
+        "+y",
+        0.05
+      ],
+      [
+        "a0",
+        "+x",
+        0.05
+      ],
+      [
+        "a7",
+        "+y",
+        0.05
+      ],
+      [
+        "a7",
+        "+x",
+        0.05
+      ]
+    ]
+  },
+  "repeats": {
+    "n": 5,
+    "spread_m": [
+      0.0,
+      0.0
+    ],
+    "max_spread_m": 0.0,
+    "qvel_max": 1.672861009544309e-07,
+    "mean_m": [
+      -3.6050799036124737e-05,
+      0.00479926011656172
+    ]
+  },
+  "sensitivity": {
+    "records": [
+      {
+        "y_at_align_m": 0.00479926011656172,
+        "y_gap_m": 3.4990905217486407e-07,
+        "qvel_max": 3.4672748719183504e-07,
+        "label": "nominal",
+        "timestep": 0.001,
+        "settle_s": 1.2,
+        "tolerance": 1e-12
+      },
+      {
+        "y_at_align_m": 0.004799259932820374,
+        "y_gap_m": 3.499082625599628e-07,
+        "qvel_max": 3.524733294505931e-07,
+        "label": "dt=0.0005",
+        "timestep": 0.0005,
+        "settle_s": 1.2,
+        "tolerance": 1e-12
+      },
+      {
+        "y_at_align_m": 0.00479926042290328,
+        "y_gap_m": 3.4991052447717885e-07,
+        "qvel_max": 3.3551586270328516e-07,
+        "label": "dt=0.002",
+        "timestep": 0.002,
+        "settle_s": 1.2,
+        "tolerance": 1e-12
+      },
+      {
+        "y_at_align_m": 0.004742561483918721,
+        "y_gap_m": 2.922917331218619e-07,
+        "qvel_max": 0.0006563569998248895,
+        "label": "settle=0.4",
+        "timestep": 0.001,
+        "settle_s": 0.4,
+        "tolerance": 1e-12
+      },
+      {
+        "y_at_align_m": 0.004799264391987687,
+        "y_gap_m": 3.4992898725709487e-07,
+        "qvel_max": 2.1543539702923326e-11,
+        "label": "settle=2.4",
+        "timestep": 0.001,
+        "settle_s": 2.4,
+        "tolerance": 1e-12
+      },
+      {
+        "y_at_align_m": 0.00479926011656172,
+        "y_gap_m": 3.4990905217486407e-07,
+        "qvel_max": 3.4672748719183504e-07,
+        "label": "tol=1e-06",
+        "timestep": 0.001,
+        "settle_s": 1.2,
+        "tolerance": 1e-06
+      },
+      {
+        "y_at_align_m": 0.00479926011656172,
+        "y_gap_m": 3.4990905217486407e-07,
+        "qvel_max": 3.4672748719183504e-07,
+        "label": "tol=1e-08",
+        "timestep": 0.001,
+        "settle_s": 1.2,
+        "tolerance": 1e-08
+      }
+    ],
+    "settled_labels": [
+      "nominal",
+      "dt=0.0005",
+      "dt=0.002",
+      "settle=2.4",
+      "tol=1e-06",
+      "tol=1e-08"
+    ],
+    "response_span_m": 4.459167313175527e-09,
+    "gap_span_m": 3.4992898725709487e-07,
+    "nominal_y_m": 0.00479926011656172
+  },
+  "breakdown": {
+    "probe_align_m": [
+      -3.6050799036124737e-05,
+      0.00479926011656172
+    ],
+    "double_linearity_err_m": 7.212743110526731e-05,
+    "double_transverse_err_m": 4.408567138567895e-06,
+    "sign_reversal_err_m": 7.210159807224947e-05,
+    "sign_reversal_transverse_err_m": 0.0,
+    "sign_reversal_axial_err_m": 7.210159807224947e-05,
+    "large_force_n": 3.0,
+    "large_linearity_err_m": 0.11287813036444982,
+    "large_qvel_max": 1.7059743635490695e-09,
+    "large_qpos_max": 0.16747105149083166,
+    "large_hit_limit": false,
+    "small_qvel_max": 1.672861009544309e-07,
+    "contact_gap_m": 0.0025,
+    "contact_soft_ncon": 0,
+    "contact_soft_back_ncon": 0,
+    "contact_hard_ncon": 1,
+    "contact_hard_back_ncon": 0,
+    "contact_soft_qvel": 4.901245593265554e-10,
+    "contact_hard_qvel": 1.944560176389549e-09,
+    "contact_soft_gap_m": -1.5168604033792034e-07,
+    "contact_hard_gap_m": -0.0016206564027543982,
+    "contact_soft_protect_m": [
+      -7.028456646379633e-06,
+      0.0013998302958707662
+    ],
+    "contact_hard_protect_m": [
+      -2.475035019203209e-05,
+      0.0025788570811097894
+    ],
+    "contact_hard_penetration_m": 7.885708110978891e-05
+  },
+  "numerical_uncertainty_m": 3.4992898725709487e-07,
+  "straight_zero_qvel": 0.0,
+  "straight_linearization_relative_error": 0.006603909905884235,
+  "geometries": [
+    {
+      "name": "straight",
+      "description": "Straight cantilever. Positive control. The protected station is the same material point as action port a3.",
+      "goal_direction": [
+        0.27472112789737824,
+        0.961523947640823
+      ],
+      "align_rest_m": [
+        0.36,
+        0.0
+      ],
+      "protect_rest_m": [
+        0.16,
+        0.0
+      ],
+      "pose_err_m": 0.0,
+      "zero_qvel_max": 0.0,
+      "linearization_relative_error": 0.006603909905884235,
+      "reciprocity_max_err_m": 5.49307634396284e-05,
+      "reciprocity_worst": {
+        "port_i": "a7",
+        "port_j": "align",
+        "disp_err_m": 5.49307634396284e-05,
+        "disp_scale_m": 0.0047993955167844994,
+        "tolerance_m": 9.598791033569e-05,
+        "agrees": true
+      },
+      "n_pairs_failing": 0,
+      "ranking": {
+        "best": {
+          "port": "a7",
+          "direction": "+y",
+          "magnitude": 0.05,
+          "utility": 0.8609399233717552,
+          "progress_m": 0.004604699616858776,
+          "protect_m": 0.0013998510406795553
+        },
+        "second": {
+          "port": "a3",
+          "direction": "+y",
+          "magnitude": 0.15,
+          "utility": 0.6939989150888284
+        },
+        "tie": [
+          "a7 +y 0.05N"
+        ],
+        "gap_to_next": 0.1669410082829268,
+        "gap_to_distinct": 0.1669410082829268,
+        "top": [
+          {
+            "action": "a7 +y 0.05N",
+            "utility": 0.8609399233717552
+          },
+          {
+            "action": "a3 +y 0.15N",
+            "utility": 0.6939989150888284
+          },
+          {
+            "action": "a6 +y 0.05N",
+            "utility": 0.6924635576560806
+          },
+          {
+            "action": "a4 +y 0.15N",
+            "utility": 0.6786444540956249
+          },
+          {
+            "action": "a5 +y 0.15N",
+            "utility": 0.5844537694524539
+          }
+        ]
+      },
+      "blind_utility": 0.0,
+      "blind_regret": 0.8609399233717552,
+      "direct_budget_choice": "a7 +y 0.05N",
+      "direct_budget_utility": 0.8609399233717552,
+      "direct_budget_regret": 0.0,
+      "deployable_choice": "a7 +y 0.05N",
+      "deployable_predicted_utility": 0.8630629897351899,
+      "deployable_measured_utility": 0.8609399233717552,
+      "deployable_regret": 0.0,
+      "oracle_choice": "a7 +y 0.05N",
+      "oracle_regret": 0.0,
+      "oracle_matches_deployable_matrix": true,
+      "misspecified_k_x2_choice": "a6 +y 0.15N",
+      "misspecified_k_x2_regret": 0.37059614462692186,
+      "probe_choice": "a7 +y 0.05N",
+      "probe_predicted_utility": 0.8628534174196837,
+      "probe_measured_utility": 0.8609399233717552,
+      "probe_regret": 0.0,
+      "probe_unexecuted_median_err_m": 1.4853062514601262e-05,
+      "probe_unexecuted_max_err_m": 0.000324227283114608,
+      "probe_same_force_max_err_m": 4.1444013133051794e-05,
+      "unknown_pairs": {
+        "identified": "every 2\u00d72 block with at least one index at align or protect, including the align\u2013protect block",
+        "not_identified_action_pairs": [
+          [
+            "a0",
+            "a1"
+          ],
+          [
+            "a0",
+            "a2"
+          ],
+          [
+            "a0",
+            "a4"
+          ],
+          [
+            "a0",
+            "a5"
+          ],
+          [
+            "a0",
+            "a6"
+          ],
+          [
+            "a0",
+            "a7"
+          ],
+          [
+            "a1",
+            "a2"
+          ],
+          [
+            "a1",
+            "a4"
+          ],
+          [
+            "a1",
+            "a5"
+          ],
+          [
+            "a1",
+            "a6"
+          ],
+          [
+            "a1",
+            "a7"
+          ],
+          [
+            "a2",
+            "a4"
+          ],
+          [
+            "a2",
+            "a5"
+          ],
+          [
+            "a2",
+            "a6"
+          ],
+          [
+            "a2",
+            "a7"
+          ],
+          [
+            "a4",
+            "a5"
+          ],
+          [
+            "a4",
+            "a6"
+          ],
+          [
+            "a4",
+            "a7"
+          ],
+          [
+            "a5",
+            "a6"
+          ],
+          [
+            "a5",
+            "a7"
+          ],
+          [
+            "a6",
+            "a7"
+          ]
+        ],
+        "n_unknown_pairs": 21,
+        "note": "A nonlinear response, including contact and the large-load secant, is not identified by these probes."
+      }
+    },
+    {
+      "name": "branched",
+      "description": "Main arm with a 60\u00b0 branch. Alignment is the main tip; the protected point is the branch tip.",
+      "goal_direction": [
+        0.6507913734559685,
+        0.7592566023652967
+      ],
+      "align_rest_m": [
+        0.28,
+        0.0
+      ],
+      "protect_rest_m": [
+        0.16000000000000003,
+        0.06928203230275509
+      ],
+      "pose_err_m": 0.0,
+      "zero_qvel_max": 0.0,
+      "linearization_relative_error": 0.004245797112548033,
+      "reciprocity_max_err_m": 1.8798819697451603e-05,
+      "reciprocity_worst": {
+        "port_i": "a5",
+        "port_j": "align",
+        "disp_err_m": 1.8798819697451603e-05,
+        "disp_scale_m": 0.002519806926400225,
+        "tolerance_m": 5.03961385280045e-05,
+        "agrees": true
+      },
+      "n_pairs_failing": 0,
+      "ranking": {
+        "best": {
+          "port": "a4",
+          "direction": "+y",
+          "magnitude": 0.15,
+          "utility": 0.5498904929193691,
+          "progress_m": 0.005041513722745148,
+          "protect_m": 0.0032188786814221974
+        },
+        "second": {
+          "port": "a5",
+          "direction": "+y",
+          "magnitude": 0.15,
+          "utility": 0.5010578988884373
+        },
+        "tie": [
+          "a4 +y 0.15N"
+        ],
+        "gap_to_next": 0.048832594030931764,
+        "gap_to_distinct": 0.048832594030931764,
+        "top": [
+          {
+            "action": "a4 +y 0.15N",
+            "utility": 0.5498904929193691
+          },
+          {
+            "action": "a5 +y 0.15N",
+            "utility": 0.5010578988884373
+          },
+          {
+            "action": "a3 +y 0.15N",
+            "utility": 0.4153005275694323
+          },
+          {
+            "action": "a5 +y 0.05N",
+            "utility": 0.320977743552956
+          },
+          {
+            "action": "a2 +y 0.15N",
+            "utility": 0.2888292488980632
+          }
+        ]
+      },
+      "blind_utility": 0.0,
+      "blind_regret": 0.5498904929193691,
+      "direct_budget_choice": "a7 +y 0.05N",
+      "direct_budget_utility": 0.09582446453624308,
+      "direct_budget_regret": 0.45406602838312604,
+      "deployable_choice": "a4 +y 0.15N",
+      "deployable_predicted_utility": 0.5493727860466064,
+      "deployable_measured_utility": 0.5498904929193691,
+      "deployable_regret": 0.0,
+      "oracle_choice": "a4 +y 0.15N",
+      "oracle_regret": 0.0,
+      "oracle_matches_deployable_matrix": true,
+      "misspecified_k_x2_choice": "a5 +y 0.15N",
+      "misspecified_k_x2_regret": 0.048832594030931764,
+      "probe_choice": "a4 +y 0.15N",
+      "probe_predicted_utility": 0.5510183049040447,
+      "probe_measured_utility": 0.5498904929193691,
+      "probe_regret": 0.0,
+      "probe_unexecuted_median_err_m": 8.25351986571965e-06,
+      "probe_unexecuted_max_err_m": 0.00011429454915955812,
+      "probe_same_force_max_err_m": 1.3857364728309118e-05,
+      "unknown_pairs": {
+        "identified": "every 2\u00d72 block with at least one index at align or protect, including the align\u2013protect block",
+        "not_identified_action_pairs": [
+          [
+            "a0",
+            "a1"
+          ],
+          [
+            "a0",
+            "a2"
+          ],
+          [
+            "a0",
+            "a3"
+          ],
+          [
+            "a0",
+            "a4"
+          ],
+          [
+            "a0",
+            "a5"
+          ],
+          [
+            "a0",
+            "a6"
+          ],
+          [
+            "a0",
+            "a7"
+          ],
+          [
+            "a1",
+            "a2"
+          ],
+          [
+            "a1",
+            "a3"
+          ],
+          [
+            "a1",
+            "a4"
+          ],
+          [
+            "a1",
+            "a5"
+          ],
+          [
+            "a1",
+            "a6"
+          ],
+          [
+            "a1",
+            "a7"
+          ],
+          [
+            "a2",
+            "a3"
+          ],
+          [
+            "a2",
+            "a4"
+          ],
+          [
+            "a2",
+            "a5"
+          ],
+          [
+            "a2",
+            "a6"
+          ],
+          [
+            "a2",
+            "a7"
+          ],
+          [
+            "a3",
+            "a4"
+          ],
+          [
+            "a3",
+            "a5"
+          ],
+          [
+            "a3",
+            "a6"
+          ],
+          [
+            "a3",
+            "a7"
+          ],
+          [
+            "a4",
+            "a5"
+          ],
+          [
+            "a4",
+            "a6"
+          ],
+          [
+            "a4",
+            "a7"
+          ],
+          [
+            "a5",
+            "a6"
+          ],
+          [
+            "a5",
+            "a7"
+          ],
+          [
+            "a6",
+            "a7"
+          ]
+        ],
+        "n_unknown_pairs": 28,
+        "note": "A nonlinear response, including contact and the large-load secant, is not identified by these probes."
+      }
+    },
+    {
+      "name": "ell",
+      "description": "L-bracket. Alignment is the upright tip; the protected point is the elbow.",
+      "goal_direction": [
+        0.9701425001453319,
+        -0.24253562503633294
+      ],
+      "align_rest_m": [
+        0.16,
+        0.2
+      ],
+      "protect_rest_m": [
+        0.16,
+        0.0
+      ],
+      "pose_err_m": 0.0,
+      "zero_qvel_max": 0.0,
+      "linearization_relative_error": 0.006346418174670517,
+      "reciprocity_max_err_m": 4.008548501321849e-05,
+      "reciprocity_worst": {
+        "port_i": "a7",
+        "port_j": "align",
+        "disp_err_m": 4.008548501321849e-05,
+        "disp_scale_m": 0.0031106014702045742,
+        "tolerance_m": 6.221202940409149e-05,
+        "agrees": true
+      },
+      "n_pairs_failing": 0,
+      "ranking": {
+        "best": {
+          "port": "a5",
+          "direction": "+x",
+          "magnitude": 0.15,
+          "utility": 0.7765090362792786,
+          "progress_m": 0.005400330997401946,
+          "protect_m": 0.0017767606782227723
+        },
+        "second": {
+          "port": "a6",
+          "direction": "+x",
+          "magnitude": 0.15,
+          "utility": 0.6835578070776778
+        },
+        "tie": [
+          "a5 +x 0.15N"
+        ],
+        "gap_to_next": 0.09295122920160082,
+        "gap_to_distinct": 0.09295122920160082,
+        "top": [
+          {
+            "action": "a5 +x 0.15N",
+            "utility": 0.7765090362792786
+          },
+          {
+            "action": "a6 +x 0.15N",
+            "utility": 0.6835578070776778
+          },
+          {
+            "action": "a7 +x 0.15N",
+            "utility": 0.6371277220344393
+          },
+          {
+            "action": "a7 +x 0.05N",
+            "utility": 0.5160035685955325
+          },
+          {
+            "action": "a4 +x 0.15N",
+            "utility": 0.5010649932539728
+          }
+        ]
+      },
+      "blind_utility": 0.0,
+      "blind_regret": 0.7765090362792786,
+      "direct_budget_choice": "a7 +x 0.05N",
+      "direct_budget_utility": 0.5160035685955325,
+      "direct_budget_regret": 0.26050546768374605,
+      "deployable_choice": "a5 +x 0.15N",
+      "deployable_predicted_utility": 0.7728571428571429,
+      "deployable_measured_utility": 0.7765090362792786,
+      "deployable_regret": 0.0,
+      "oracle_choice": "a5 +x 0.15N",
+      "oracle_regret": 0.0,
+      "oracle_matches_deployable_matrix": true,
+      "misspecified_k_x2_choice": "a7 +x 0.15N",
+      "misspecified_k_x2_regret": 0.13938131424483924,
+      "probe_choice": "a5 +x 0.15N",
+      "probe_predicted_utility": 0.772282551749617,
+      "probe_measured_utility": 0.7765090362792786,
+      "probe_regret": 0.0,
+      "probe_unexecuted_median_err_m": 1.216426491254389e-05,
+      "probe_unexecuted_max_err_m": 0.00018134177826323512,
+      "probe_same_force_max_err_m": 2.918564579474413e-05,
+      "unknown_pairs": {
+        "identified": "every 2\u00d72 block with at least one index at align or protect, including the align\u2013protect block",
+        "not_identified_action_pairs": [
+          [
+            "a0",
+            "a1"
+          ],
+          [
+            "a0",
+            "a2"
+          ],
+          [
+            "a0",
+            "a3"
+          ],
+          [
+            "a0",
+            "a4"
+          ],
+          [
+            "a0",
+            "a5"
+          ],
+          [
+            "a0",
+            "a6"
+          ],
+          [
+            "a0",
+            "a7"
+          ],
+          [
+            "a1",
+            "a2"
+          ],
+          [
+            "a1",
+            "a3"
+          ],
+          [
+            "a1",
+            "a4"
+          ],
+          [
+            "a1",
+            "a5"
+          ],
+          [
+            "a1",
+            "a6"
+          ],
+          [
+            "a1",
+            "a7"
+          ],
+          [
+            "a2",
+            "a3"
+          ],
+          [
+            "a2",
+            "a4"
+          ],
+          [
+            "a2",
+            "a5"
+          ],
+          [
+            "a2",
+            "a6"
+          ],
+          [
+            "a2",
+            "a7"
+          ],
+          [
+            "a3",
+            "a4"
+          ],
+          [
+            "a3",
+            "a5"
+          ],
+          [
+            "a3",
+            "a6"
+          ],
+          [
+            "a3",
+            "a7"
+          ],
+          [
+            "a4",
+            "a5"
+          ],
+          [
+            "a4",
+            "a6"
+          ],
+          [
+            "a4",
+            "a7"
+          ],
+          [
+            "a5",
+            "a6"
+          ],
+          [
+            "a5",
+            "a7"
+          ],
+          [
+            "a6",
+            "a7"
+          ]
+        ],
+        "n_unknown_pairs": 28,
+        "note": "A nonlinear response, including contact and the large-load secant, is not identified by these probes."
+      }
+    },
+    {
+      "name": "crank",
+      "description": "Asymmetric crank: 0\u00b0, then 80\u00b0, then 20\u00b0. Alignment is the free end.",
+      "goal_direction": [
+        0.9914925255978219,
+        -0.13016363425954547
+      ],
+      "align_rest_m": [
+        0.25360089581434064,
+        0.15921934756054518
+      ],
+      "protect_rest_m": [
+        0.1234729635533386,
+        0.01969615506024416
+      ],
+      "pose_err_m": 5.551115123125783e-17,
+      "zero_qvel_max": 0.0,
+      "linearization_relative_error": 0.00969593946138532,
+      "reciprocity_max_err_m": 1.3520779936840934e-05,
+      "reciprocity_worst": {
+        "port_i": "a7",
+        "port_j": "align",
+        "disp_err_m": 1.3520779936840934e-05,
+        "disp_scale_m": 0.003688418876041296,
+        "tolerance_m": 7.376837752082592e-05,
+        "agrees": true
+      },
+      "n_pairs_failing": 0,
+      "ranking": {
+        "best": {
+          "port": "a7",
+          "direction": "+x",
+          "magnitude": 0.15,
+          "utility": 0.8019686349875963,
+          "progress_m": 0.004909843174937981,
+          "protect_m": 0.0014753404984822773
+        },
+        "second": {
+          "port": "a6",
+          "direction": "-y",
+          "magnitude": 0.15,
+          "utility": 0.7592657660039257
+        },
+        "tie": [
+          "a7 +x 0.15N"
+        ],
+        "gap_to_next": 0.042702868983670594,
+        "gap_to_distinct": 0.042702868983670594,
+        "top": [
+          {
+            "action": "a7 +x 0.15N",
+            "utility": 0.8019686349875963
+          },
+          {
+            "action": "a6 -y 0.15N",
+            "utility": 0.7592657660039257
+          },
+          {
+            "action": "a6 +x 0.15N",
+            "utility": 0.7543346614821649
+          },
+          {
+            "action": "a7 -y 0.15N",
+            "utility": 0.7284756100885115
+          },
+          {
+            "action": "a5 +x 0.15N",
+            "utility": 0.6588147211145821
+          }
+        ]
+      },
+      "blind_utility": 0.0,
+      "blind_regret": 0.8019686349875963,
+      "direct_budget_choice": "a7 +x 0.05N",
+      "direct_budget_utility": 0.27677693913803897,
+      "direct_budget_regret": 0.5251916958495573,
+      "deployable_choice": "a7 +x 0.15N",
+      "deployable_predicted_utility": 0.8170087167221058,
+      "deployable_measured_utility": 0.8019686349875963,
+      "deployable_regret": 0.0,
+      "oracle_choice": "a7 +x 0.15N",
+      "oracle_regret": 0.0,
+      "oracle_matches_deployable_matrix": true,
+      "misspecified_k_x2_choice": "a7 -y 0.15N",
+      "misspecified_k_x2_regret": 0.07349302489908482,
+      "probe_choice": "a7 +x 0.15N",
+      "probe_predicted_utility": 0.8168446960784361,
+      "probe_measured_utility": 0.8019686349875963,
+      "probe_regret": 0.0,
+      "probe_unexecuted_median_err_m": 9.9788359007493e-06,
+      "probe_unexecuted_max_err_m": 0.00037584889064223013,
+      "probe_same_force_max_err_m": 6.491586150760348e-05,
+      "unknown_pairs": {
+        "identified": "every 2\u00d72 block with at least one index at align or protect, including the align\u2013protect block",
+        "not_identified_action_pairs": [
+          [
+            "a0",
+            "a1"
+          ],
+          [
+            "a0",
+            "a2"
+          ],
+          [
+            "a0",
+            "a3"
+          ],
+          [
+            "a0",
+            "a4"
+          ],
+          [
+            "a0",
+            "a5"
+          ],
+          [
+            "a0",
+            "a6"
+          ],
+          [
+            "a0",
+            "a7"
+          ],
+          [
+            "a1",
+            "a2"
+          ],
+          [
+            "a1",
+            "a3"
+          ],
+          [
+            "a1",
+            "a4"
+          ],
+          [
+            "a1",
+            "a5"
+          ],
+          [
+            "a1",
+            "a6"
+          ],
+          [
+            "a1",
+            "a7"
+          ],
+          [
+            "a2",
+            "a3"
+          ],
+          [
+            "a2",
+            "a4"
+          ],
+          [
+            "a2",
+            "a5"
+          ],
+          [
+            "a2",
+            "a6"
+          ],
+          [
+            "a2",
+            "a7"
+          ],
+          [
+            "a3",
+            "a4"
+          ],
+          [
+            "a3",
+            "a5"
+          ],
+          [
+            "a3",
+            "a6"
+          ],
+          [
+            "a3",
+            "a7"
+          ],
+          [
+            "a4",
+            "a5"
+          ],
+          [
+            "a4",
+            "a6"
+          ],
+          [
+            "a4",
+            "a7"
+          ],
+          [
+            "a5",
+            "a6"
+          ],
+          [
+            "a5",
+            "a7"
+          ],
+          [
+            "a6",
+            "a7"
+          ]
+        ],
+        "n_unknown_pairs": 28,
+        "note": "A nonlinear response, including contact and the large-load secant, is not identified by these probes."
+      }
+    }
+  ],
+  "decision": {
+    "verdict": "NO-GO",
+    "checks": {
+      "simulation_credible": true,
+      "reciprocity_within_tolerance": true,
+      "optimal_actions_differ": true,
+      "image_blind_fails": true,
+      "deployable_mechanics_does_not_solve": false,
+      "goal_probes_validated": true,
+      "equal_cost_reason_to_compare_interventions": false
+    },
+    "n_distinct_optima": 4,
+    "max_mechanics_regret": 0.0
+  }
+}
