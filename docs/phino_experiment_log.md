@@ -476,3 +476,58 @@ Scaling curves from one to four interventions do not create a trajectory lead th
 - The probes' success is a direct calculator on four labels, not a representation result.
 
 **Conclusion.** Reciprocity holds for this fixture at 0.05 N and fails at a contact stop and at 3 N, which is the expected content of the theorem rather than a new finding. Visible geometry does change the best first action, and a fixed action does not transfer. The deployable spring model already selects that action, so there is no equal-cost reason to collect reciprocal probes instead. **NO-GO** for a Phase 2 learning experiment on this intervention. Do not hide a spring rate in order to manufacture a residual.
+
+## 2026-11-07: AnyGoal contact-action diagnostic
+
+**Question.** On the released Extract-Peg task, does the frozen Sensorimotor World Model select inferior contact sequences because its predicted consequences are wrong, once the candidate actions are held fixed and prediction is separated from goal scoring?
+
+**Hypothesis H, pre-registered in the Nov 7 memorandum.** For a substantial fraction of test states whose goal is attainable in a common candidate bank, SMWM selects a failing sequence while scoring the actual resulting images with the same latent goal cost selects a successful sequence. If H fails, this test gives no evidence for a predictive-learning bottleneck.
+
+**Data and code.**
+- Protocol: `docs/research/PHINO-Problem-First-Memorandum-2026-11-07.md`, Section 8. No new training.
+- AnyGoal checkout `f0cf8c28acfe0ae35b5946dbb637cd6e391d8e0e`, isolated at `/cs/local/nbu/people/ashah264/anygoal-audit`. SMWM source `9d22bcc15c6ad8af8cc93337a950df2b49a866b9`.
+- Hugging Face model revision `b27f9dac9c750410d1331d258a95eff0d56570c2` and dataset revision `1719e7dab2fbeb07a0d5c3cf9cd881bc49510c88`.
+- Checkpoint `sensorimotor_insertpeg.ckpt`, sha256 `14ef756d0a0ea701079d6629208950f003d96b2a9dba9dc0b9cde63f1d301f3b`, matching the release sidecar. State checkpoints `toy-adaln_insertpeg.pt` (`929d8bc9…`) and `toy-action-duplicate_insertpeg.pt` (`b39d1202…`) likewise match their sidecars. Both state configs are 33-dimensional with `include_velocities: false`.
+- Files: training `manipulator_insert_peg_weak_expert_train.h5` sha256 `7e676e32…d98d` (40,032,526,769 bytes); `avoid_peg_test.h5` sha256 `83c83532…2644`; `extract_peg_test.h5` sha256 `afc53cff…32a1`.
+- Runtime: Python 3.10.22, torch 2.9.1+cu128, MuJoCo 3.8.1, stable-worldmodel 0.1.1, RTX 5060 Ti. The editable install used the CUDA 12.8 index with `unsafe-best-match` because a plain extra index made the pinned `tqdm` unsatisfiable. Direct pins match the repository. Some transitive versions differ from `requirements.txt`; that difference is recorded, not hidden. A one-sample `get_cost` call on the loaded SMWM returned a finite `(1, samples)` cost, so no criterion patch was applied.
+- Audit code: `scripts/anygoal_contact_diagnostic.py`, `scripts/anygoal_contact_download.py`, `scripts/run_anygoal_contact_audit.sh`. Twelve unit tests in `tests/test_anygoal_contact_diagnostic.py`.
+- Primary metric: the dataset-goal criterion (hand and peg pose within 0.04 m / 0.10 rad). Native Insert-Peg reward is reported separately. Insert-Peg planning reads the training file; the memo's label is "base-task reference on training source."
+
+**Stage A.** Native `anygoal eval planning`, SMWM, seed 0, 50 evaluations. Smoke runs of 2 episodes were not used as results. Wall time was 76 s, 89 s, and 102 s.
+
+| Dataset | Dataset-goal | Paper SMWM | Native insert reward | Final object pose | Recorded 25-step replay on these starts | Train-hash overlap |
+|---|---:|---:|---:|---:|---:|---:|
+| Insert-Peg | 76% | 70% | 6% | 80% | 88% | 50/50 |
+| Avoid-Peg | 78% | 74% | 2% | 98% | 26% | 0/50 |
+| Extract-Peg | 28% | 24% | 28% | 30% | 0% | 0/50 |
+
+The gaps from the paper are +6, +4, and +4 percentage points. None crosses the 10-point audit trigger. The sampler is the released `sample_start_indices`, including its `choice(len(valid_indices) - 1)` exclusion of the last valid row. SMWM action and observation scalers are fit on `manipulator_insert_peg_weak_expert_train`, including when the evaluation file is Avoid or Extract.
+
+Because Extract-Peg stayed near the reported failure, the released 33-d state predictors were run on the same seed and evaluation count. A 44-d vector was not passed to them.
+
+| Model | Insert-Peg | Avoid-Peg | Extract-Peg |
+|---|---:|---:|---:|
+| SMWM | 76% | 78% | 28% |
+| AdaLN, 33-d, no velocities | 72% | 94% | 22% |
+| Action-duplicate, 33-d, no velocities | 76% | 86% | 28% |
+
+**Stage B.** The pre-registered bank is the first 50 Extract-Peg episodes in episode-id order, restored at index 10, with a 25-step continuation. All 400 episodes have length 199, so none were excluded for length. Before any latent score, the recorded continuation was replayed with `InsertPegEnv.step`, which is the planner's integrator.
+
+| Replay set | Full dataset goal | Object pose only | Median hand position error | Median object position error |
+|---|---:|---:|---:|---:|
+| Extract-Peg, index 10, first 50 | 6% | 60% | 76 mm | 11 mm |
+| Avoid-Peg, same rule | 0% | 82% | 164 mm | ~0 mm |
+| Insert-Peg training file, same rule | 78% | 78% | 0.8 mm | 1.0 mm |
+
+Pose restoration before the step matches the stored arm, hand, object, and target. Touch sensors are outputs and are not restored. One training-file transition from the episode start matches the next stored pose to about 0.3 mm. The same player does not match Extract-Peg at any physics substep count from 1 to 40. Clearing the solver warm start inside this environment changes a continued rollout by less than 1e-7, so warm-start loss does not explain the Extract-Peg gap. The Extract-Peg collector in the pinned source advances 25 MuJoCo substeps per action, while `env.step` advances one 10 ms control interval; replaying with 25 substeps also misses the stored goals.
+
+The 90% replay gate fails. Those rates are the state after all 25 actions. Counting a hit at any intermediate step, which is what the evaluator's ever-success flag does, raises Extract-Peg only to 8/50 at index 10 and 7/50 on the Stage A starts. Predicted-latent cost, observed-latent cost, opportunity regret, and ranking agreement were not computed. Seeds 1 and 2 and the Section 8.6 controls were not run: the memorandum expands that budget only if the action-bank diagnostic still shows a prediction failure.
+
+**Limitations.**
+- One SMWM checkpoint and one seed. Fifty episodes.
+- Insert-Peg is not a held-out split.
+- The Stage A starts and the index-10 bank are different populations. Both show the Extract-Peg replay failure.
+- Final object success is the terminal pose, not an ever-achieved object-only flag, except where the replay audit recorded ever-style object checks at the final frame only.
+- State predictors use history length 3 and a resolved `max_episode_steps` of 100; SMWM uses history 1 and 50. Both evaluations stop at the shared budget of 50 steps.
+
+**Conclusion.** The published SMWM numbers reproduce within 6 percentage points, and the Extract-Peg drop relative to Insert-Peg remains for SMWM and for both released state predictors. That does not identify a predictive-model failure. On the episodes being scored, the recorded Extract-Peg actions are at the dataset goal after 25 steps 0 times out of 50, and at some intermediate step 7 times out of 50. The same evaluator replays Insert-Peg actions to the 25-step goal 88% of the time. Hypothesis H was not tested. **NO-GO** for treating this gap as evidence that a new predictive objective is required. The next question is which integrator and action interface generated the released Avoid-Peg and Extract-Peg files, and whether the planner is executing that same transition. A fixed action bank is informative only after those two agree.

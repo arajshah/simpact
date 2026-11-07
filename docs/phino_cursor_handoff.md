@@ -1,6 +1,6 @@
 # SIMPACT → PHINO: Cursor agent handoff
 
-Updated: November 6, 2026. This is the **working implementation handoff**, not a replacement for code/manifests. Keep it short and update it when a milestone changes.
+Updated: November 7, 2026. This is the **working implementation handoff**, not a replacement for code/manifests. Keep it short and update it when a milestone changes.
 
 ## Goal and research boundary
 
@@ -176,9 +176,18 @@ Phase 2 feasibility only: a clamped planar spring assembly, not a learned repres
 - A linearized spring model that uses the drawn geometry and the declared 4 N·m/rad rate selects the measured optimum on every fixture (regret 0). The privileged MuJoCo stiffness oracle matches it. Four scoring-port probes also select it, and do not identify action–action blocks or the nonlinear responses.
 - **NO-GO** for a learning experiment on this intervention. The task is already solved by the deployable mechanics baseline at zero simulator cost.
 
+## Milestone status: AnyGoal contact-action diagnostic (done, Nov 7, 2026)
+
+Section 8 of `docs/research/PHINO-Problem-First-Memorandum-2026-11-07.md` was executed as a checkpoint audit. No new model was trained. Full write-up: `docs/phino_experiment_log.md`. Tables and figures: `docs/results/anygoal_contact_audit_v1/`.
+
+- Pinned AnyGoal `f0cf8c2`, SMWM source `9d22bcc`, model revision `b27f9dac`, data revision `1719e7da`. `sensorimotor_insertpeg.ckpt` matches the release sha256. Evaluation used torch 2.9.1+cu128 and MuJoCo 3.8.1.
+- SMWM seed 0, 50 evaluations, dataset-goal success: Insert-Peg 76% (paper 70), Avoid-Peg 78% (paper 74), Extract-Peg 28% (paper 24). All three are within 6 percentage points of the references. Insert-Peg is a base-task reference on the training file. Avoid and Extract trajectory hashes do not overlap that file.
+- The released 33-d state predictors, velocities excluded, also drop on Extract-Peg (AdaLN 22%, action-duplicate 28%) relative to Insert-Peg (72% and 76%).
+- **NO-GO.** Replaying the recorded Extract-Peg actions with the evaluator's `env.step` is at the 25-step goal on 0/50 of the Stage A starts (7/50 if any intermediate step counts) and 3/50 of the index-10 bank (8/50 at any step). The same player reaches the 25-step goal on 88% of the Insert-Peg Stage A starts. Predicted-latent and observed-latent costs were not scored. Hypothesis H was not tested.
+
 ## Next task
 
-Do not start a Phase 2 learning experiment from the reciprocity result. The feasibility study is a NO-GO: the small-load response is reciprocal, the optimal first action changes with visible geometry, and a spring model that sees that geometry and the declared rate already picks the measured action. Review `docs/phino_reciprocity_feasibility.md` before any new intervention design. R1–R6 in the spec's §10 are still required before any new rigid-body physics protocol. The Phase 1 gain over frozen DINOv2 is shared with generic contrastive fine-tuning, so it should not be attributed to the trajectory-similarity target.
+Do not train a representation or start the Section 8.6 inference controls from this result. The Extract-Peg gap survives the published planner and the released state predictors, but the recorded extract and avoid transitions are not the transitions of the evaluator that scores them. The next scientific question is which integrator, action scaling, and MuJoCo version reproduce those released trajectories, and whether that generator is the one the planner executes. Only a matched transition function can support a fixed action-bank comparison of prediction against goal scoring. The reciprocity feasibility study remains a separate NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
 
 ## Handoff protocol
 
