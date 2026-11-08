@@ -568,3 +568,56 @@ Argmin agreement is 0.08. Mean Spearman correlation of the two costs is 0.24. Th
 **Limitations.** The weld anchor is reconstructed, not read from the file. Full-episode open-loop error still has a heavy tail, so the claim is for the 25-step horizon, not for all 199 steps. The fixed bank and the CEM control are different action sets. State predictors were not rerun inside `ExtractPegEnv`. Coverage is about the start pose, not the welded future.
 
 **Conclusion.** Hypothesis H holds for this corrected bank: the latent goal cost ranks the real futures, and the model's predicted futures do not. Shorter replanning does not fix that. **GO only to the memorandum's standard-baseline comparison** (a contact or mechanics model that is allowed to know the weld and the 25-substep action, plus a direct goal-conditioned baseline on the same images). **Not a GO for a new representation objective.** The published 28% Extract-Peg number remains a score under `InsertPegEnv.step`, which is not the data-generating transition.
+
+## 2026-11-08: Dynamics isolation and standard baselines
+
+**Question.** How much of the corrected Extract-Peg ranking failure is the weld, the 25-substep action, or the goal, and does a true-state mechanics model or a small goal-conditioned method already rank the same candidates when the transition is one the training data support?
+
+**Hypothesis.** If the failure is the unsupported transition, predicted regret stays high only under the weld and 25 substeps, and it drops when the same goal and bank are executed with the training integrator and the bank still contains a success. If predicted regret stays high on Insert-Peg goals under that integrator, the weld does not explain the ranking failure. A true-state simulator is the mechanics ceiling. An image method counts as a competent equal-information baseline only if it beats uniform selection, or, for a pose estimator, if held-out median hand and object error are at most 2 cm.
+
+**Data and code.**
+- Same pinned AnyGoal checkout, checkpoint, and 50 Extract-Peg episodes as the corrected audit. Parent revision `42c8f64`.
+- `scripts/anygoal_dynamics_factor.py`, `scripts/anygoal_standard_baselines.py`, `scripts/run_anygoal_dynamics_factor.sh`. Tests in `tests/test_anygoal_dynamics_factor.py`.
+- Commands, from the SIMPACT root, with the AnyGoal 3.10 environment: prepare and rollout the six integrators; score the four primary ones on GPU; summarize to `docs/results/anygoal_dynamics_factor_v1/`. The insert anchor is the first 50 training episodes at step 0, with train-chunk candidates drawn from the other episodes. Retrieval, the 2000-step models, and the one-block probe write to `results/anygoal_insert_baselines_v1/` locally.
+- Physics timestep 0.001 s, so 10 substeps are 10 ms and 25 substeps are 25 ms. Two L40S GPUs. Weld/25 recorded replay reproduced the corrected audit before the full bank: goal rate 0.94, median terminal hand/object error 1.39 mm / 0.68 mm. Recomputed predicted costs agree with the corrected bank on every selected action (maximum absolute cost difference 0.037).
+
+**Protocol.** The Extract-Peg comparison holds the checkpoint, the seed-0 bank, the initial state and image, and the recorded 25-step state and image fixed. Integrators are Insert-Peg `env.step` (no weld, 10 substeps), Insert-Peg physics for 25 substeps, Extract-Peg with the grasp weld for 10 substeps, and Extract-Peg with the weld for 25 substeps. The extract model's slot-contact edits were also run with the weld off. Opportunity regret is compared across integrators only when solvability is at least 0.80. The insert anchor uses the training integrator and each episode's own 25-step goal. The one-block probe uses five actions and takes its goal to be the recorded action's own image at that time. The pose network and the goal-conditioned regression see episodes 50–129 only, 16 windows per episode, stride 10, 2000 Adam steps, batch 64, learning rate 1e-3. Episodes 130–139 are the pose check and are not training rows.
+
+**Results.** Slot edits do not move the state. The no-weld extract rollouts match the Insert-Peg rollouts exactly, including pixels. Predicted costs are identical across all four integrators because they depend only on the start image, the goal image, and the actions.
+
+| Integrator | Solvability | Recorded goal | Predicted success | Observed success | Latent SSE | Median recorded object error |
+|---|---:|---:|---:|---:|---:|---:|
+| No weld, 10 substeps | 0.10 | 0.02 | 0.02 | 0.08 | 67.5 | 34 mm |
+| No weld, 25 substeps | 0.02 | 0.00 | 0.00 | 0.02 | 64.9 | 34 mm |
+| Weld, 10 substeps | 0.30 | 0.16 | 0.08 | 0.16 | 68.1 | 22 mm |
+| Weld, 25 substeps | 0.98 | 0.94 | 0.28 | 0.92 | 68.0 | 0.7 mm |
+
+On the weld/25 bank, unconditional predicted regret remains 0.70 [0.58, 0.82] and observed regret 0.06 [0.00, 0.14]. Conditional on the 49 solvable episodes, predicted regret is 0.71 [0.59, 0.84]. The other three integrators are below the 0.80 solvability floor, so their small unconditional regrets are not ranking results. The paired latent-error difference, weld/25 minus the training integrator, is 0.52 [-0.40, 1.42]. Zeroing arm and object velocity at the start of the weld/25 rollout leaves solvability at 0.98 and the recorded-action goal rate at 0.92. Every episode begins inside the native insertion criterion. The recorded 25-step goal is inside it on 0.28 of episodes.
+
+Under the weld and 25 substeps, a second goal was the farthest realized terminal outside the dataset tolerance of the recorded terminal. Both goals are achieved by a bank action. Predicted regret is 0.80 [0.68, 0.90] for the recorded outcome and 0.94 [0.86, 1.00] for the alternate. Observed regret is 0.00 for both. The argmin changes on 0.58 [0.44, 0.72] of episodes. Median latent distance between the two goal images is 44. Insert, Avoid, and Extract dataset goals were not swapped: they were not generated under one integrator.
+
+Insert anchor, training integrator, own 25-step goals, solvability 0.84, recorded-action success 0.82:
+
+| Ranker | Success | Opportunity regret |
+|---|---:|---:|
+| True state and Insert-Peg physics | 0.84 | 0.00 |
+| Observed latent cost | 0.78 | 0.06 [0.00, 0.14] |
+| Uniform candidate | 0.37 | 0.48 |
+| SMWM predicted cost | 0.20 | 0.64 [0.50, 0.76] |
+| Goal-conditioned regression | 0.28 | 0.56 [0.42, 0.70] |
+| Image retrieval | 0.18 | 0.66 [0.52, 0.78] |
+| Pose network, estimated goal, then physics | 0.30 | 0.54 [0.40, 0.68] |
+
+The true-state simulator's regret is 0 because it selects a successful candidate whenever one exists. Its success equals solvability. The retrieval neighbor is 36 cm away in hand position and 39 cm in object position, and its action is far from the recorded action (median L2 11.3). Held-out pose error is 6.9 cm at the hand and 19.5 cm at the object, against the 2 cm bar declared before the anchor simulation. On the anchor starts the same network is at 17 cm and 40 cm. The regression success of 0.28 is below uniform selection at 0.37. Those three image methods are therefore not competent baselines. Figure: [`insert_anchor_baselines.png`](results/anygoal_dynamics_factor_v1/insert_anchor_baselines.png).
+
+One model block on the same anchor, with the goal defined as the recorded action's image after five actions: solvability 1.00, mean 8.4 candidates inside the tolerance, chance success 0.53. Predicted regret is 0.78 [0.66, 0.88] and success is 0.22. Observed regret is 0.00. One-block latent SSE is 47, against 52 for the full 25-step prediction on this anchor.
+
+**Limitations.**
+- One SMWM checkpoint. The insert anchor episodes are inside its training file; the new image methods were not trained on them.
+- The recorded continuation is a privileged member of the bank. That makes the bank easier for a method that can propose the expert action.
+- The 2000-step CNN and the 80-episode pool were a declared small budget. Their failure is a budget and coverage result.
+- The one-block goal is the recorded outcome itself, so observed regret of 0 is the cost recognizing that image. The predicted selector still lands below chance.
+- The published Insert-Peg planner result, 76% at seed 0, uses CEM and the evaluator's sampled starts. It is not this bank.
+- Short-horizon and 25-step regrets answer different goals. Both are reported separately.
+
+**Conclusion.** Both the weld and the 25 ms action are required before this bank can reach the recorded Extract-Peg pose. The training integrator does not make that pose solvable, and the model's latent error does not improve reliably when that integrator is restored. The ranking failure itself is already present for Insert-Peg goals under the training integrator, at 25 steps and at one model block, while a true-state simulator ranks the 25-step bank with regret 0. The image baselines trained here do not meet the competence bar, so they do not show that a fair standard method fails. **NO-GO for a new learning objective.** The single next measurement is an image-to-state estimator that first reaches 2 cm held-out error on insert episodes outside the anchor, then ranks this same bank. A regret interval below 0.10 stops the diagnosis.

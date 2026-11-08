@@ -1,6 +1,6 @@
 # SIMPACT → PHINO: Cursor agent handoff
 
-Updated: November 7, 2026. This is the **working implementation handoff**, not a replacement for code/manifests. Keep it short and update it when a milestone changes.
+Updated: November 8, 2026. This is the **working implementation handoff**, not a replacement for code/manifests. Keep it short and update it when a milestone changes.
 
 ## Goal and research boundary
 
@@ -183,13 +183,21 @@ Section 8 of `docs/research/PHINO-Problem-First-Memorandum-2026-11-07.md` was ex
 - Pinned AnyGoal `f0cf8c2`, SMWM source `9d22bcc`, model revision `b27f9dac`, data revision `1719e7da`. `sensorimotor_insertpeg.ckpt` matches the release sha256. Evaluation used torch 2.9.1+cu128 and MuJoCo 3.8.1.
 - SMWM seed 0, 50 evaluations, dataset-goal success: Insert-Peg 76% (paper 70), Avoid-Peg 78% (paper 74), Extract-Peg 28% (paper 24). All three are within 6 percentage points of the references. Insert-Peg is a base-task reference on the training file. Avoid and Extract trajectory hashes do not overlap that file.
 - The released 33-d state predictors, velocities excluded, also drop on Extract-Peg (AdaLN 22%, action-duplicate 28%) relative to Insert-Peg (72% and 76%).
-- **NO-GO.** Replaying the recorded Extract-Peg actions with the evaluator's `env.step` is at the 25-step goal on 0/50 of the Stage A starts (7/50 if any intermediate step counts) and 3/50 of the index-10 bank (8/50 at any step). The same player reaches the 25-step goal on 88% of the Insert-Peg Stage A starts. Predicted-latent and observed-latent costs were not scored. Hypothesis H was not tested.
+- **NO-GO at that stage.** Replaying the recorded Extract-Peg actions with the evaluator's `env.step` is at the 25-step goal on 0/50 of the Stage A starts. The weld/25 correction, hypothesis H, and the baseline comparison are the Nov 8 milestone below.
+
+## Milestone status: dynamics isolation and standard baselines (done, Nov 8, 2026)
+
+The corrected Extract-Peg bank was rerun under the training integrator, 25 substeps without the weld, the weld at 10 substeps, and the weld at 25 substeps. Model weights, the action bank, the start, and the recorded goal stayed fixed. Full write-up: `docs/phino_experiment_log.md`. Tables and figures: `docs/results/anygoal_dynamics_factor_v1/`.
+
+- The recorded Extract-Peg pose is bank-solvable only with both the weld and the 25-substep action (solvability 0.98). The training integrator solves 0.10. Slot-contact edits change nothing. Zero initial velocity leaves solvability at 0.98.
+- Predicted latent costs do not depend on the integrator. Latent error does not fall reliably when the simulator returns to the training timestep (paired difference 0.52 [-0.40, 1.42]).
+- The same ranking failure is already present on Insert-Peg under the training integrator: predicted regret 0.64 [0.50, 0.76], observed regret 0.06 [0.00, 0.14], solvability 0.84. One model block still has predicted regret 0.78 [0.66, 0.88].
+- A true-state Insert-Peg simulator has regret 0 on that bank. A 2000-step image policy, nearest-neighbor retrieval, and a small pose network do not beat uniform selection or the 2 cm pose bar. They are not competent equal-information baselines.
+- **NO-GO for a new learning objective.**
 
 ## Next task
 
-The Extract-Peg mismatch is diagnosed. `extract_peg_test.h5` is a 40% prefix trim of a 331-step `ExtractPegEnv` rollout with a hand-peg weld and 25 physics substeps per action. `InsertPegEnv.step` is 10 substeps and has no weld, so it does not replay those files. Avoid-Peg replays under 25 substeps without the weld. Re-locking the weld at the first stored frame reproduces the 25-step Extract goal on 47/50 episodes (median hand/object error 1.4 mm / 0.7 mm). On that corrected bank, predicted-latent opportunity regret is 0.70 [0.58, 0.82] and observed-latent regret is 0.06 [0.00, 0.14]. Replanning every 5 actions does not remove the gap (success 0.46 versus 0.48 open-loop).
-
-Do not train a new objective. The next experiment is the memorandum's standard-baseline comparison on this corrected bank: a contact or mechanics model that is allowed to know the weld and the 25-substep action, and a direct goal-conditioned baseline on the same images. The published `InsertPegEnv.step` scores stay as a separate, unmatched evaluation. The reciprocity study remains a NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
+Train an image-to-state estimator on insert episodes 50–1460, excluding the 50 anchor episodes, until held-out median hand and object error are at most 2 cm. Rank the existing insert anchor bank with Insert-Peg physics from that estimate. Stop if the regret interval falls below 0.10. Do not train a new objective, and do not treat a sub-2 cm failure of this small pose network as that test. The reciprocity study remains a NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
 
 ## Handoff protocol
 
