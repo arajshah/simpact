@@ -182,6 +182,12 @@ def test_result_text_keeps_dataset_goal_and_native_rates_distinct():
     assert audit._success_rates_from_text(text) == (28.0, 6.0)
 
 
+def test_grasp_release_index_follows_the_closed_grip_command():
+    grip = np.array([0.4] * 5 + [0.1])
+    assert audit.grasp_release_index(grip) == 5
+    assert audit.grasp_release_index(np.full(4, 0.4)) == 4
+
+
 def test_numpy_success_string_parses_to_booleans():
     text = "[False  True  True False\n  True]"
     assert audit.parse_bool_vector(text) == [False, True, True, False, True]

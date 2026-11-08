@@ -33,5 +33,33 @@ Recorded-action replay reached the recorded goal on fewer than 90% of states. Th
 
 Recorded continuations were replayed with InsertPegEnv.step, the evaluator used by the released planner. The 90% goal-reach check failed, so predicted-latent and observed-latent costs were not computed. The training-file reference uses the same player.
 
-The index-10 training reference above is a different 50-episode draw from the Stage A starts. On those Stage A starts, recorded-action replay reaches the dataset goal for 88% of Insert-Peg, 26% of Avoid-Peg, and 0% of Extract-Peg. Seeds 1 and 2, latent action-bank scores, and the Section 8.6 inference controls were not run. The replay gate is a stop, not a repaired benchmark.
+## Stage B, corrected extract dynamics
+
+Starts at the first stored frame rather than index 10, and steps ExtractPegEnv for 25 physics substeps with the grasp weld engaged. The published InsertPegEnv.step results are unchanged.
+
+Decision: **PENDING-STAGE-C**
+
+Hypothesis H is supported on this bank: predicted-latent selection has high opportunity regret, and replacing the rollout with the actual future under the same terminal latent cost reduces that regret. Section 8.8 still requires the inference-only controls before a GO to standard-baseline diagnosis. This does not authorize a new representation method.
+
+Recorded continuation at step 25 reaches the goal on 94.0% of episodes. Median one-step hand/object error 0.26 / 0.23 mm. Median 25-step hand/object error 1.39 / 0.68 mm.
+
+| Quantity | Mean | 95% interval |
+|---|---:|---:|
+| P opportunity regret | 0.700 | [0.580, 0.820] |
+| O opportunity regret | 0.060 | [0.000, 0.140] |
+| P minus O regret | 0.640 | [0.500, 0.760] |
+| H rate | 0.640 | [0.500, 0.780] |
+| P and O fail while the bank succeeds | 0.060 | [0.000, 0.140] |
+
+Bank solvability: 0.980.
+Argmin agreement: 0.080.
+Mean Spearman P vs O: 0.236.
+
+### Replanning control
+
+Open-loop 25-step CEM success 0.480 [0.340, 0.620]. Replan every 5 raw actions 0.460 [0.320, 0.600]. Model-query counts 1500 and 7500.
+
+Extract start states beyond the training 95th-percentile neighbor distance: 0 / 50.
+
+Final decision on the corrected protocol: **GO only to the memorandum's standard-baseline comparison.** Replanning does not remove the prediction failure. This does not authorize a new representation objective. The grasp weld is a real dynamical difference from Insert-Peg training and has to be available to those baselines.
 

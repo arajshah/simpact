@@ -531,3 +531,40 @@ The 90% replay gate fails. Those rates are the state after all 25 actions. Count
 - State predictors use history length 3 and a resolved `max_episode_steps` of 100; SMWM uses history 1 and 50. Both evaluations stop at the shared budget of 50 steps.
 
 **Conclusion.** The published SMWM numbers reproduce within 6 percentage points, and the Extract-Peg drop relative to Insert-Peg remains for SMWM and for both released state predictors. That does not identify a predictive-model failure. On the episodes being scored, the recorded Extract-Peg actions are at the dataset goal after 25 steps 0 times out of 50, and at some intermediate step 7 times out of 50. The same evaluator replays Insert-Peg actions to the 25-step goal 88% of the time. Hypothesis H was not tested. **NO-GO** for treating this gap as evidence that a new predictive objective is required. The next question is which integrator and action interface generated the released Avoid-Peg and Extract-Peg files, and whether the planner is executing that same transition. A fixed action bank is informative only after those two agree.
+
+## 2026-11-07: Extract-Peg replay correction and the fixed action bank
+
+**Question.** Which integrator and hidden state generated the released Extract-Peg and Avoid-Peg files, and once trajectories are reproduced, does SMWM's predicted latent cost select worse actions than the same cost on the real future?
+
+**What the files are.** `extract_peg_test.h5` attributes record `task=manipulator_extract_peg`, seed 20260926, a 40% prefix trim, and `derived_from` a v2 expert file. The trim script `scripts/data/trim_extract_peg_v3.py` (present before AnyGoal commit `3dfc844`, absent from the pinned `f0cf8c2` tree) copies states and actions; it does not re-simulate. Every episode has 199 transitions, which is `331 - floor(0.4 * 331)`. The current collector uses the same 331-step script, `ExtractPegEnv`, a hand-peg weld, and `physics.step(nstep=25)`. `InsertPegEnv.step` advances one 10 ms control interval, 10 substeps, and has no weld. Avoid-Peg uses the same 25-substep integrator on `InsertPegEnv`. Its slot-collision edits are not required to replay the tested episodes.
+
+**Trajectory reproduction, separate from goal success.** Re-locking the weld at the first stored frame and integrating 25 substeps per action:
+
+| Check | Result |
+|---|---|
+| One-step median hand / object error | 0.26 mm / 0.23 mm |
+| Error after 25 actions, median hand / object | 1.39 mm / 0.68 mm |
+| Recorded 25-step state inside the goal tolerances | 47/50 (94%) |
+| Same replay from index 10, where the original weld anchor is 12 steps stale | 25-step goal rate 50%; one-step median hand 1.5 mm |
+
+The published `InsertPegEnv.step` replay remains 0/50 at the final step on the Stage A starts. Avoid-Peg under 25 substeps, on 20 episodes, has a maximum goal-component error of 0.0036; `env.step` leaves a median hand error of 74 mm. Insert-Peg remains the positive control for `env.step` (88% of Stage A starts). The index-10 preregistered bank is not used for model scores: the weld anchor is not in the 44-d state, and the first stored frame is where re-locking it matches the generator. That revision is separate from the published evaluation, which was not changed.
+
+**Corrected Stage B.** Fifty episodes, start at the first stored frame, bank seed 0, 16 candidates, SMWM `sensorimotor_insertpeg.ckpt`. Native `get_cost`. True utility is the dataset-goal tolerance on the corrected rollout.
+
+| Quantity | Mean | 95% episode bootstrap interval |
+|---|---:|---:|
+| Recorded continuation reaches the 25-step goal | 0.94 | |
+| Bank solvability | 0.98 | |
+| P opportunity regret | 0.70 | [0.58, 0.82] |
+| O opportunity regret | 0.06 | [0.00, 0.14] |
+| P minus O | 0.64 | [0.50, 0.76] |
+| H: P fails and O succeeds | 0.64 | [0.50, 0.78] |
+| P and O both fail while the bank succeeds | 0.06 | [0.00, 0.14] |
+
+Argmin agreement is 0.08. Mean Spearman correlation of the two costs is 0.24. The Section 8.8 numerical gates that this bank can answer are met.
+
+**Stage C.** In the same corrected dynamics, published CEM (300 samples, 30 iterations, horizon 5) executed open-loop for 25 actions succeeds on 0.48 [0.34, 0.62] of the 50 episodes. Replanning every 5 raw actions, with the unused plan tail as the warm start, succeeds on 0.46 [0.32, 0.60]. Query counts are 1,500 and 7,500. Replanning does not remove the failure. The 50 start states, in the 33-d essential coordinates and z-scored against an 8,000-frame training sample, are all inside that sample's 95th-percentile neighbor distance (median distance 2.45 versus threshold 4.07).
+
+**Limitations.** The weld anchor is reconstructed, not read from the file. Full-episode open-loop error still has a heavy tail, so the claim is for the 25-step horizon, not for all 199 steps. The fixed bank and the CEM control are different action sets. State predictors were not rerun inside `ExtractPegEnv`. Coverage is about the start pose, not the welded future.
+
+**Conclusion.** Hypothesis H holds for this corrected bank: the latent goal cost ranks the real futures, and the model's predicted futures do not. Shorter replanning does not fix that. **GO only to the memorandum's standard-baseline comparison** (a contact or mechanics model that is allowed to know the weld and the 25-substep action, plus a direct goal-conditioned baseline on the same images). **Not a GO for a new representation objective.** The published 28% Extract-Peg number remains a score under `InsertPegEnv.step`, which is not the data-generating transition.

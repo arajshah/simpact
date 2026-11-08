@@ -274,6 +274,19 @@ def select_true_utility(success: np.ndarray, error_sums: np.ndarray) -> tuple[in
     return selected, n_success
 
 
+def grasp_release_index(grip: np.ndarray, tolerance: float = 1e-3) -> int:
+    """First action whose grip command leaves the episode's initial grip value.
+
+    The extract collector closes the fingers at 0.4 and opens them when the
+    grasp weld is released. The stored episodes keep that pattern.
+    """
+    grip = np.asarray(grip, dtype=np.float64).reshape(-1)
+    if grip.size == 0 or not np.all(np.isfinite(grip)):
+        raise ValueError("Grip commands must be non-empty and finite.")
+    changes = np.flatnonzero(np.abs(grip - grip[0]) > tolerance)
+    return int(changes[0]) if changes.size else int(grip.size)
+
+
 def opportunity_regret(success: np.ndarray, selected: int) -> int:
     success = np.asarray(success, dtype=bool).reshape(N_CANDIDATES)
     best = int(success.any())
@@ -1386,6 +1399,7 @@ def write_figures(results: Path, docs: Path) -> None:
         return
     summary = json.loads(summary_path.read_text())
     if summary.get("model_scoring") == "not_run":
+        _plot_corrected(results, docs)
         return
     fig, ax = plt.subplots(figsize=(6.2, 3.6))
     series = [
@@ -1435,6 +1449,136 @@ def write_figures(results: Path, docs: Path) -> None:
     fig.tight_layout()
     fig.savefig(docs / "stage_b_cost_scatter.png", dpi=140)
     plt.close(fig)
+
+
+def _plot_corrected(results: Path, docs: Path) -> None:
+    import matplotlib.pyplot as plt
+
+    path = results / "stage_b_corrected" / "summary.json"
+    if not path.is_file():
+        return
+    summary = json.loads(path.read_text())
+    if "regret_p" not in summary:
+        return
+    docs.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(6.2, 3.6))
+    series = [
+        ("P regret", summary["regret_p"]),
+        ("O regret", summary["regret_o"]),
+        ("H rate", summary["hypothesis_h_rate"]),
+    ]
+    _bar_with_interval(
+        ax,
+        [item[0] for item in series],
+        [item[1]["mean"] for item in series],
+        [item[1]["ci_low"] for item in series],
+        [item[1]["ci_high"] for item in series],
+        "Episode mean",
+        "Corrected dynamics: regret and hypothesis H",
+    )
+    fig.tight_layout()
+    fig.savefig(docs / "stage_b_corrected_regret.png", dpi=140)
+    plt.close(fig)
+    banks_path = results / "stage_b_corrected" / "banks.npz"
+    if banks_path.is_file():
+        banks = np.load(banks_path)
+        fig, ax = plt.subplots(figsize=(4.6, 4.2))
+        ax.scatter(
+            banks["predicted_cost"].reshape(-1),
+            banks["observed_cost"].reshape(-1),
+            s=8,
+            alpha=0.35,
+            color="#3c6e71",
+        )
+        ax.set_xlabel("Predicted-latent cost")
+        ax.set_ylabel("Observed-latent cost")
+        ax.set_title("Corrected extract dynamics")
+        fig.tight_layout()
+        fig.savefig(docs / "stage_b_corrected_cost_scatter.png", dpi=140)
+        plt.close(fig)
+
+
+def _corrected_lines(results: Path) -> list[str]:
+    path = results / "stage_b_corrected" / "summary.json"
+    if not path.is_file():
+        return []
+    summary = json.loads(path.read_text())
+    lines = [
+        "## Stage B, corrected extract dynamics",
+        "",
+        summary.get("revision_from_preregistered", ""),
+        "",
+        f"Decision: **{summary.get('interpretation', {}).get('decision', 'incomplete')}**",
+        "",
+        summary.get("interpretation", {}).get("reason", summary.get("reason", "")),
+        "",
+        (
+            f"Recorded continuation at step 25 reaches the goal on "
+            f"{100 * summary.get('terminal_goal_rate', float('nan')):.1f}% of episodes. "
+            f"Median one-step hand/object error "
+            f"{1000 * summary.get('one_step_hand_median_m', float('nan')):.2f} / "
+            f"{1000 * summary.get('one_step_object_median_m', float('nan')):.2f} mm. "
+            f"Median 25-step hand/object error "
+            f"{1000 * summary.get('terminal_hand_median_m', float('nan')):.2f} / "
+            f"{1000 * summary.get('terminal_object_median_m', float('nan')):.2f} mm."
+        ),
+        "",
+    ]
+    if "regret_p" in summary:
+        lines.extend(["| Quantity | Mean | 95% interval |", "|---|---:|---:|"])
+        for label, key in (
+            ("P opportunity regret", "regret_p"),
+            ("O opportunity regret", "regret_o"),
+            ("P minus O regret", "regret_reduction_p_minus_o"),
+            ("H rate", "hypothesis_h_rate"),
+            ("P and O fail while the bank succeeds", "goal_score_rate"),
+        ):
+            item = summary[key]
+            lines.append(
+                f"| {label} | {item['mean']:.3f} | [{item['ci_low']:.3f}, {item['ci_high']:.3f}] |"
+            )
+        lines.append("")
+        lines.append(f"Bank solvability: {summary['solvability_full']:.3f}.")
+        lines.append(f"Argmin agreement: {summary['argmin_agreement']:.3f}.")
+        lines.append(f"Mean Spearman P vs O: {summary['mean_spearman_p_o']:.3f}.")
+        lines.append("")
+    stage_c = results / "stage_c" / "summary.json"
+    if stage_c.is_file():
+        control = json.loads(stage_c.read_text())
+        lines.extend(
+            [
+                "### Replanning control",
+                "",
+                (
+                    f"Open-loop 25-step CEM success {control['open_loop_25']['mean']:.3f} "
+                    f"[{control['open_loop_25']['ci_low']:.3f}, {control['open_loop_25']['ci_high']:.3f}]. "
+                    f"Replan every 5 raw actions {control['replan_every_5']['mean']:.3f} "
+                    f"[{control['replan_every_5']['ci_low']:.3f}, {control['replan_every_5']['ci_high']:.3f}]. "
+                    f"Model-query counts {control['queries_per_mode']['open_loop_25']} and "
+                    f"{control['queries_per_mode']['replan_every_5']}."
+                ),
+                "",
+            ]
+        )
+    coverage = results / "stage_c" / "coverage.json"
+    if coverage.is_file():
+        cover = json.loads(coverage.read_text())
+        lines.append(
+            f"Extract start states beyond the training 95th-percentile neighbor distance: "
+            f"{cover['extract_starts_beyond_train_p95']} / {cover['n']}."
+        )
+        lines.append("")
+    stage_c_path = results / "stage_c" / "summary.json"
+    if stage_c_path.is_file():
+        control = json.loads(stage_c_path.read_text())
+        if not control.get("replanning_removes_most_of_the_failure", True):
+            lines.extend(
+                [
+                    "Final decision on the corrected protocol: **GO only to the memorandum's standard-baseline comparison.** Replanning does not remove the prediction failure. This does not authorize a new representation objective. The grasp weld is a real dynamical difference from Insert-Peg training and has to be available to those baselines.",
+                    "",
+                ]
+            )
+    return lines
 
 
 def write_report(results: Path, docs: Path) -> None:
@@ -1502,6 +1646,8 @@ def write_report(results: Path, docs: Path) -> None:
                     f"{item['median_errors']['object_position']:.4f} |"
                 )
             lines.extend(["", summary.get("scoring_note", ""), ""])
+            lines.extend(_corrected_lines(results))
+            _plot_corrected(results, docs)
             (docs / "summary.md").write_text("\n".join(lines) + "\n")
             return
         lines.extend(
@@ -1539,7 +1685,375 @@ def write_report(results: Path, docs: Path) -> None:
         for name, value in summary["checks"].items():
             lines.append(f"- {name}: {value}")
         lines.append("")
+    lines.extend(_corrected_lines(results))
+    _plot_corrected(results, docs)
     (docs / "summary.md").write_text("\n".join(lines) + "\n")
+
+
+def _apply_extract_action(env, action: np.ndarray) -> None:
+    env.physics.set_control(np.asarray(action, dtype=np.float64))
+    env.physics.step(nstep=25)
+
+
+def _extract_rollout(env, state: np.ndarray, actions: np.ndarray, goal: np.ndarray, grasp: bool):
+    from anygoal.envs.extract_peg.policy import set_grasp_constraint
+    from anygoal.envs.insert_peg.env import insert_peg_goal_errors, insert_peg_goal_reached
+
+    env.reset(seed=0, options={"state": state, "goal_state": goal})
+    if grasp:
+        set_grasp_constraint(env.physics, True)
+    one_step = None
+    ever = False
+    for index, action in enumerate(actions):
+        _apply_extract_action(env, action)
+        if index == 0:
+            one_step = env.get_state().copy()
+        ever = ever or insert_peg_goal_reached(
+            insert_peg_goal_errors(goal, env.get_state()), TOLERANCES
+        )
+    final = env.get_state().copy()
+    image = as_hwc_uint8(env.render())
+    return final, image, one_step, ever
+
+
+def run_corrected_stage_b(results: Path, data_root: Path, checkpoint: Path, anygoal_root: Path) -> dict:
+    """Score the fixed action bank in the extract generator's dynamics.
+
+    The published evaluator is InsertPegEnv.step. The released Extract-Peg
+    file was generated by ExtractPegEnv with a hand-peg weld and 25 physics
+    substeps. The weld anchor is not in the 44-d state; it can be
+    reconstructed at the first stored frame, two steps after the collector
+    engaged it. Index 10 cannot reconstruct that anchor, so this protocol
+    starts there instead and is reported separately from the preregistered
+    index-10 check.
+    """
+    import os as _os
+
+    _os.environ.setdefault("MUJOCO_GL", "egl")
+    sys.path.insert(0, str(anygoal_root))
+    import torch
+    from anygoal.envs.extract_peg.env import ExtractPegEnv
+    from anygoal.envs.insert_peg.env import insert_peg_goal_errors, insert_peg_goal_reached
+    from anygoal.resources import resource_path
+    from anygoal.runners.plan.planning_sensorimotor import image_transform, load_model
+    from anygoal.sources import source_path
+
+    if not torch.cuda.is_available():
+        raise RuntimeError("Corrected Stage B requires CUDA.")
+    extract_path = data_root / "extract_peg_test.h5"
+    train_path = data_root / TRAIN_FILENAME
+    records = index_h5_episodes(extract_path)
+    chosen, excluded = select_extract_episodes(records, start_index=0)
+    train_records = index_h5_episodes(train_path)
+    train_actions, action_mean, action_scale = load_training_actions(train_path, train_records)
+    env = ExtractPegEnv(render_mode="rgb_array", width=224, height=224, terminate_at_goal=False)
+    low = np.asarray(env.action_space.low, dtype=np.float64)
+    high = np.asarray(env.action_space.high, dtype=np.float64)
+    handle = open_h5(extract_path)
+    validation = []
+    try:
+        for record in chosen:
+            window = read_rows(
+                handle, record["offset"], 0, HORIZON_STEPS + 1, ("action", "observation")
+            )
+            actions = np.asarray(window["action"][:HORIZON_STEPS], dtype=np.float64)
+            states = np.asarray(window["observation"], dtype=np.float64)
+            final, _image, one_step, ever = _extract_rollout(
+                env, states[0], actions, states[HORIZON_STEPS], grasp=True
+            )
+            one = insert_peg_goal_errors(states[1], one_step)
+            terminal = insert_peg_goal_errors(states[HORIZON_STEPS], final)
+            validation.append(
+                {
+                    "episode_id": record["episode_id"],
+                    "one_step_hand_m": one["hand_position"],
+                    "one_step_object_m": one["object_position"],
+                    "terminal_hand_m": terminal["hand_position"],
+                    "terminal_object_m": terminal["object_position"],
+                    "terminal_hand_rad": terminal["hand_angle"],
+                    "terminal_object_rad": terminal["object_angle"],
+                    "terminal_goal": bool(insert_peg_goal_reached(terminal, TOLERANCES)),
+                    "ever_goal": bool(ever),
+                }
+            )
+        terminal_rate = float(np.mean([row["terminal_goal"] for row in validation]))
+        if terminal_rate < 0.90:
+            summary = {
+                "protocol": "corrected_extract_generator",
+                "model_scoring": "not_run",
+                "terminal_goal_rate": terminal_rate,
+                "reason": "Corrected 25-step replay did not reach 90% of recorded goals.",
+            }
+            output = results / "stage_b_corrected"
+            output.mkdir(parents=True, exist_ok=True)
+            _write_csv(output / "validation.csv", validation)
+            write_json(output / "summary.json", summary)
+            return summary
+
+        source = source_path("sensorimotor")
+        planning = source / "planning" if (source / "planning" / "jepa.py").is_file() else source
+        model = load_model(
+            planning,
+            planning,
+            "cuda",
+            train_config_path=resource_path("train", "sensorimotor", "insert_peg.yaml"),
+            checkpoint_path=checkpoint,
+        )
+        transform = image_transform(224)
+        rng = np.random.default_rng(BANK_SEED)
+        rows = []
+        costs_p, costs_o, success = [], [], []
+        cost_mode = None
+        for record, check in zip(chosen, validation):
+            window = read_rows(
+                handle,
+                record["offset"],
+                0,
+                HORIZON_STEPS + 1,
+                ("action", "observation", "pixels"),
+            )
+            recorded = np.asarray(window["action"][:HORIZON_STEPS], dtype=np.float64)
+            states = np.asarray(window["observation"], dtype=np.float64)
+            start_image = as_hwc_uint8(window["pixels"][0])
+            goal_image = as_hwc_uint8(window["pixels"][HORIZON_STEPS])
+            bank, _meta = build_action_bank(
+                recorded, train_actions, low, high, action_scale, rng
+            )
+            flags, error_sums, finals = [], [], []
+            for actions in bank:
+                final, image, _one, _ever = _extract_rollout(
+                    env, states[0], actions, states[HORIZON_STEPS], grasp=True
+                )
+                errors = insert_peg_goal_errors(states[HORIZON_STEPS], final)
+                flags.append(insert_peg_goal_reached(errors, TOLERANCES))
+                error_sums.append(normalized_error_sum(errors))
+                finals.append(image)
+            flags_arr = np.asarray(flags, dtype=bool)
+            blocked = block_normalized_actions(bank, action_mean, action_scale)
+            predicted, observed, cost_mode = score_bank(
+                model, transform, start_image, goal_image, finals, blocked
+            )
+            p_index, p_ties = select_lowest_cost(predicted)
+            o_index, o_ties = select_lowest_cost(observed)
+            t_index, n_success = select_true_utility(flags_arr, np.asarray(error_sums))
+            rows.append(
+                {
+                    "episode_id": record["episode_id"],
+                    "recorded_terminal_goal": check["terminal_goal"],
+                    "one_step_hand_m": check["one_step_hand_m"],
+                    "one_step_object_m": check["one_step_object_m"],
+                    "bank_solvable": bool(flags_arr.any()),
+                    "n_success": n_success,
+                    "p_index": p_index,
+                    "o_index": o_index,
+                    "t_index": t_index,
+                    "p_ties": p_ties,
+                    "o_ties": o_ties,
+                    "p_regret": opportunity_regret(flags_arr, p_index),
+                    "o_regret": opportunity_regret(flags_arr, o_index),
+                    "t_regret": opportunity_regret(flags_arr, t_index),
+                    "same_argmin": int(p_index == o_index),
+                    "h_indicator": int(
+                        opportunity_regret(flags_arr, p_index) == 1
+                        and opportunity_regret(flags_arr, o_index) == 0
+                    ),
+                    "goal_score_indicator": int(
+                        opportunity_regret(flags_arr, p_index) == 1
+                        and opportunity_regret(flags_arr, o_index) == 1
+                        and flags_arr.any()
+                    ),
+                    "spearman_p_o": spearman(predicted, observed),
+                }
+            )
+            costs_p.append(predicted)
+            costs_o.append(observed)
+            success.append(flags_arr)
+            print(
+                f"episode {record['episode_id']}: recorded={check['terminal_goal']} "
+                f"solvable={bool(flags_arr.any())} "
+                f"P/O={rows[-1]['p_regret']}/{rows[-1]['o_regret']}",
+                flush=True,
+            )
+    finally:
+        handle.close()
+        env.close()
+
+    regret_p = bootstrap_mean([row["p_regret"] for row in rows])
+    regret_o = bootstrap_mean([row["o_regret"] for row in rows])
+    reduction = bootstrap_mean(
+        [row["p_regret"] - row["o_regret"] for row in rows], seed=BOOTSTRAP_SEED + 1
+    )
+    summary = {
+        "protocol": "corrected_extract_generator",
+        "revision_from_preregistered": (
+            "Starts at the first stored frame rather than index 10, and steps "
+            "ExtractPegEnv for 25 physics substeps with the grasp weld engaged. "
+            "The published InsertPegEnv.step results are unchanged."
+        ),
+        "n_states": len(rows),
+        "n_excluded_short": len(excluded),
+        "terminal_goal_rate": terminal_rate,
+        "one_step_hand_median_m": float(np.median([row["one_step_hand_m"] for row in validation])),
+        "one_step_object_median_m": float(np.median([row["one_step_object_m"] for row in validation])),
+        "terminal_hand_median_m": float(np.median([row["terminal_hand_m"] for row in validation])),
+        "terminal_object_median_m": float(np.median([row["terminal_object_m"] for row in validation])),
+        "replay_pass_rate": terminal_rate,
+        "solvability_full": float(np.mean([row["bank_solvable"] for row in rows])),
+        "regret_p": regret_p,
+        "regret_o": regret_o,
+        "regret_reduction_p_minus_o": reduction,
+        "hypothesis_h_rate": bootstrap_mean(
+            [row["h_indicator"] for row in rows], seed=BOOTSTRAP_SEED + 2
+        ),
+        "goal_score_rate": bootstrap_mean(
+            [row["goal_score_indicator"] for row in rows], seed=BOOTSTRAP_SEED + 3
+        ),
+        "argmin_agreement": float(np.mean([row["same_argmin"] for row in rows])),
+        "mean_spearman_p_o": float(np.nanmean([row["spearman_p_o"] for row in rows])),
+        "cost_mode": cost_mode,
+        "model_scoring": "completed",
+        "checks": section_8_checks(
+            replay_pass_rate=terminal_rate,
+            solvability=float(np.mean([row["bank_solvable"] for row in rows])),
+            regret_p=regret_p,
+            regret_reduction=reduction,
+        ),
+    }
+    summary["interpretation"] = interpret_stage_b(summary)
+    output = results / "stage_b_corrected"
+    output.mkdir(parents=True, exist_ok=True)
+    _write_csv(output / "validation.csv", validation)
+    _write_csv(output / "episodes.csv", rows)
+    write_json(output / "summary.json", summary)
+    np.savez_compressed(
+        output / "banks.npz",
+        predicted_cost=np.asarray(costs_p),
+        observed_cost=np.asarray(costs_o),
+        success=np.asarray(success),
+        episode_id=np.asarray([row["episode_id"] for row in rows]),
+    )
+    return summary
+
+
+def run_stage_c(results: Path, data_root: Path, checkpoint: Path, anygoal_root: Path) -> dict:
+    """Replan every 5 raw actions in the corrected extract dynamics.
+
+    The solver budget stays at the published CEM settings. Only the number of
+    actions executed before the next plan changes.
+    """
+    import os as _os
+
+    _os.environ.setdefault("MUJOCO_GL", "egl")
+    sys.path.insert(0, str(anygoal_root))
+    import gymnasium as gym
+    import stable_worldmodel as swm
+    import torch
+    from anygoal.envs.extract_peg.env import ExtractPegEnv
+    from anygoal.envs.insert_peg.env import insert_peg_goal_errors, insert_peg_goal_reached
+    from anygoal.resources import resource_path
+    from anygoal.runners.plan.planning_sensorimotor import image_transform, load_model
+    from anygoal.sources import source_path
+
+    if not torch.cuda.is_available():
+        raise RuntimeError("Stage C requires CUDA.")
+    corrected = json.loads((results / "stage_b_corrected" / "summary.json").read_text())
+    if corrected.get("interpretation", {}).get("decision") != "PENDING-STAGE-C":
+        raise RuntimeError("Stage C runs only after the corrected bank supports hypothesis H.")
+    extract_path = data_root / "extract_peg_test.h5"
+    train_path = data_root / TRAIN_FILENAME
+    records = index_h5_episodes(extract_path)
+    chosen, _excluded = select_extract_episodes(records, start_index=0)
+    _episodes, action_mean, action_scale = load_training_actions(train_path, index_h5_episodes(train_path))
+    source = source_path("sensorimotor")
+    planning = source / "planning" if (source / "planning" / "jepa.py").is_file() else source
+    model = load_model(
+        planning, planning, "cuda",
+        train_config_path=resource_path("train", "sensorimotor", "insert_peg.yaml"),
+        checkpoint_path=checkpoint,
+    )
+    transform = image_transform(224)
+    space = gym.spaces.Box(
+        low=-np.ones((1, ACTION_DIM), dtype=np.float32),
+        high=np.ones((1, ACTION_DIM), dtype=np.float32),
+    )
+    env = ExtractPegEnv(render_mode="rgb_array", width=224, height=224, terminate_at_goal=False)
+    handle = open_h5(extract_path)
+    modes = {"open_loop_25": 5, "replan_every_5": 1}
+    successes = {name: [] for name in modes}
+    queries = {name: 0 for name in modes}
+    try:
+        for record in chosen:
+            window = read_rows(
+                handle, record["offset"], 0, HORIZON_STEPS + 1, ("observation", "pixels")
+            )
+            goal_state = np.asarray(window["observation"][HORIZON_STEPS], dtype=np.float64)
+            start_state = np.asarray(window["observation"][0], dtype=np.float64)
+            goal_image = as_hwc_uint8(window["pixels"][HORIZON_STEPS])
+            start_image = as_hwc_uint8(window["pixels"][0])
+            for name, receding in modes.items():
+                solver = swm.solver.CEMSolver(
+                    model=model, seed=0, device="cuda", batch_size=1,
+                    num_samples=300, var_scale=1.0, n_steps=30, topk=30,
+                )
+                config = swm.PlanConfig(
+                    horizon=5, receding_horizon=receding, action_block=5, warm_start=True,
+                )
+                solver.configure(action_space=space, n_envs=1, config=config)
+                env.reset(seed=0, options={"state": start_state, "goal_state": goal_state})
+                from anygoal.envs.extract_peg.policy import set_grasp_constraint
+                set_grasp_constraint(env.physics, True)
+                image = start_image
+                executed = 0
+                ever = False
+                init_action = None
+                while executed < HORIZON_STEPS:
+                    current = _policy_image(image, transform)
+                    goal = _policy_image(goal_image, transform)
+                    info = {
+                        "pixels": current[:, None].contiguous(),
+                        "goal": goal[:, None].contiguous(),
+                    }
+                    outputs = solver.solve(info, init_action=init_action)
+                    queries[name] += 30
+                    plan = outputs["actions"][0, :receding].reshape(-1, ACTION_DIM).detach().cpu().numpy()
+                    raw = plan * action_scale + action_mean
+                    raw = np.clip(raw, env.action_space.low, env.action_space.high)
+                    for action in raw:
+                        _apply_extract_action(env, action)
+                        ever = ever or insert_peg_goal_reached(
+                            insert_peg_goal_errors(goal_state, env.get_state()), TOLERANCES
+                        )
+                    executed += len(raw)
+                    image = as_hwc_uint8(env.render())
+                    if config.warm_start:
+                        rest = outputs["actions"][0, receding:]
+                        init_action = rest.unsqueeze(0) if rest.shape[0] else None
+                    else:
+                        init_action = None
+                terminal = insert_peg_goal_reached(
+                    insert_peg_goal_errors(goal_state, env.get_state()), TOLERANCES
+                )
+                successes[name].append(bool(terminal or ever))
+            print(
+                f"stage-c episode {record['episode_id']}: "
+                + " ".join(f"{name}={successes[name][-1]}" for name in modes),
+                flush=True,
+            )
+    finally:
+        handle.close()
+        env.close()
+    summary = {"queries_per_mode": queries, "n": len(chosen)}
+    for name, values in successes.items():
+        summary[name] = bootstrap_mean(np.asarray(values, dtype=np.float64))
+    open_rate = summary["open_loop_25"]["mean"]
+    replan_rate = summary["replan_every_5"]["mean"]
+    summary["replanning_removes_most_of_the_failure"] = bool(
+        replan_rate >= open_rate + 0.5 * (1.0 - open_rate)
+    )
+    output = results / "stage_c"
+    output.mkdir(parents=True, exist_ok=True)
+    write_json(output / "summary.json", summary)
+    return summary
 
 
 def main() -> None:
@@ -1558,6 +2072,16 @@ def main() -> None:
     stage_parser.add_argument("--data-root", type=Path, required=True)
     stage_parser.add_argument("--checkpoint", type=Path, required=True)
     stage_parser.add_argument("--anygoal-root", type=Path, required=True)
+    corrected_parser = subparsers.add_parser("stage-b-corrected")
+    corrected_parser.add_argument("--results", type=Path, required=True)
+    corrected_parser.add_argument("--data-root", type=Path, required=True)
+    corrected_parser.add_argument("--checkpoint", type=Path, required=True)
+    corrected_parser.add_argument("--anygoal-root", type=Path, required=True)
+    stage_c_parser = subparsers.add_parser("stage-c")
+    stage_c_parser.add_argument("--results", type=Path, required=True)
+    stage_c_parser.add_argument("--data-root", type=Path, required=True)
+    stage_c_parser.add_argument("--checkpoint", type=Path, required=True)
+    stage_c_parser.add_argument("--anygoal-root", type=Path, required=True)
     report_parser = subparsers.add_parser("report")
     report_parser.add_argument("--results", type=Path, required=True)
     report_parser.add_argument("--docs", type=Path, required=True)
@@ -1584,6 +2108,10 @@ def main() -> None:
         write_json(audit_path, audit)
     elif args.command == "stage-b":
         run_stage_b(args.results, args.data_root, args.checkpoint, args.anygoal_root)
+    elif args.command == "stage-b-corrected":
+        run_corrected_stage_b(args.results, args.data_root, args.checkpoint, args.anygoal_root)
+    elif args.command == "stage-c":
+        run_stage_c(args.results, args.data_root, args.checkpoint, args.anygoal_root)
     elif args.command == "report":
         write_figures(args.results, args.docs)
         write_report(args.results, args.docs)

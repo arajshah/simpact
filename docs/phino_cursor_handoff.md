@@ -187,7 +187,9 @@ Section 8 of `docs/research/PHINO-Problem-First-Memorandum-2026-11-07.md` was ex
 
 ## Next task
 
-Do not train a representation or start the Section 8.6 inference controls from this result. The Extract-Peg gap survives the published planner and the released state predictors, but the recorded extract and avoid transitions are not the transitions of the evaluator that scores them. The next scientific question is which integrator, action scaling, and MuJoCo version reproduce those released trajectories, and whether that generator is the one the planner executes. Only a matched transition function can support a fixed action-bank comparison of prediction against goal scoring. The reciprocity feasibility study remains a separate NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
+The Extract-Peg mismatch is diagnosed. `extract_peg_test.h5` is a 40% prefix trim of a 331-step `ExtractPegEnv` rollout with a hand-peg weld and 25 physics substeps per action. `InsertPegEnv.step` is 10 substeps and has no weld, so it does not replay those files. Avoid-Peg replays under 25 substeps without the weld. Re-locking the weld at the first stored frame reproduces the 25-step Extract goal on 47/50 episodes (median hand/object error 1.4 mm / 0.7 mm). On that corrected bank, predicted-latent opportunity regret is 0.70 [0.58, 0.82] and observed-latent regret is 0.06 [0.00, 0.14]. Replanning every 5 actions does not remove the gap (success 0.46 versus 0.48 open-loop).
+
+Do not train a new objective. The next experiment is the memorandum's standard-baseline comparison on this corrected bank: a contact or mechanics model that is allowed to know the weld and the 25-substep action, and a direct goal-conditioned baseline on the same images. The published `InsertPegEnv.step` scores stay as a separate, unmatched evaluation. The reciprocity study remains a NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
 
 ## Handoff protocol
 
