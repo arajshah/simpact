@@ -1,0 +1,55 @@
+{
+  "definition": "The saved diagnostic cast normalized actions to the uint8 dtype of the policy image. This rescore keeps those actions float32, which is the training representation, and repeats the uint8 cast as a control.",
+  "stored_versus_uint8_max_abs": 0.05950164794921875,
+  "stored_versus_float_max_abs": 153.87844681739807,
+  "first_block_first_five_float": [
+    0.7905698027249095,
+    -1.0652274378510533,
+    1.3304670580799043,
+    1.401763450847919,
+    -1.3780249405490652
+  ],
+  "first_block_first_five_uint8": [
+    0,
+    255,
+    1,
+    1,
+    255
+  ],
+  "stored_regret": {
+    "n": 50,
+    "mean": 0.64,
+    "ci_low": 0.5,
+    "ci_high": 0.76,
+    "n_resamples": 10000,
+    "seed": 300,
+    "defined": true
+  },
+  "uint8_regret": {
+    "n": 50,
+    "mean": 0.64,
+    "ci_low": 0.5,
+    "ci_high": 0.76,
+    "n_resamples": 10000,
+    "seed": 301,
+    "defined": true
+  },
+  "float_regret": {
+    "n": 50,
+    "mean": 0.12,
+    "ci_low": 0.04,
+    "ci_high": 0.22,
+    "n_resamples": 10000,
+    "seed": 302,
+    "defined": true
+  },
+  "float_pair_accuracy": {
+    "n": 42,
+    "mean": 0.9593988022559452,
+    "ci_low": 0.9279998837141694,
+    "ci_high": 0.9846376606198036,
+    "n_resamples": 10000,
+    "seed": 303,
+    "defined": true
+  }
+}

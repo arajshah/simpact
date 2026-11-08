@@ -1,0 +1,355 @@
+{
+  "definition": "A training clip is two frames separated by five raw actions. The target is the projector embedding of the later frame from the same encoder, with no EMA and no stop-gradient. The action block is the five raw actions between those frames, normalized by the training-set mean and unbiased standard deviation. Inference is eval mode.",
+  "n_clips": 964,
+  "n_episodes": 241,
+  "batchnorm": [
+    {
+      "name": "projector.net.1",
+      "tracked_batches": 46300,
+      "running_mean_abs": 0.389171838760376,
+      "running_var_mean": 0.21659164130687714
+    },
+    {
+      "name": "pred_proj.net.1",
+      "tracked_batches": 46300,
+      "running_mean_abs": 0.8426569700241089,
+      "running_var_mean": 0.22943857312202454
+    }
+  ],
+  "action_scale_relative_gap_vs_bank": 0.0002637191154531503,
+  "action_mean_abs_gap_vs_bank": 0.0014968772992048907,
+  "official_window_action_max_abs": 1.1159142587757742e-07,
+  "official_window_pixel_max_abs": 0,
+  "rollout_versus_forward_max_abs": 0.0018219351768493652,
+  "paths_agree": false,
+  "scaler_matches": true,
+  "phases": {
+    "start": {
+      "sse": {
+        "n": 241,
+        "mean": 1.6633906842440638,
+        "ci_low": 1.549357909203813,
+        "ci_high": 1.7839377884276635,
+        "n_resamples": 10000,
+        "seed": 200,
+        "defined": true
+      },
+      "persistence_sse": {
+        "n": 241,
+        "mean": 3.970335636008159,
+        "ci_low": 3.6960826498597386,
+        "ci_high": 4.258770906224625,
+        "n_resamples": 10000,
+        "seed": 210,
+        "defined": true
+      },
+      "cosine": {
+        "n": 241,
+        "mean": 0.7370103061260205,
+        "ci_low": 0.7166520430477906,
+        "ci_high": 0.7562273979784826,
+        "n_resamples": 10000,
+        "seed": 220,
+        "defined": true
+      },
+      "true_delta_norm": {
+        "n": 241,
+        "mean": 1.9221156743830472,
+        "ci_low": 1.8564419331996869,
+        "ci_high": 1.9902413181396221,
+        "n_resamples": 10000,
+        "seed": 230,
+        "defined": true
+      },
+      "predicted_delta_norm": {
+        "n": 241,
+        "mean": 1.625287516071324,
+        "ci_low": 1.5613508852019404,
+        "ci_high": 1.6900962800449375,
+        "n_resamples": 10000,
+        "seed": 240,
+        "defined": true
+      },
+      "inverse_mse": {
+        "n": 241,
+        "mean": 0.5403636480020785,
+        "ci_low": 0.512698910459567,
+        "ci_high": 0.5682590717472971,
+        "n_resamples": 10000,
+        "seed": 250,
+        "defined": true
+      },
+      "beats_persistence": {
+        "n": 241,
+        "mean": 2.306944951764095,
+        "ci_low": 2.0777166345179023,
+        "ci_high": 2.5505018393522083,
+        "n_resamples": 10000,
+        "seed": 260,
+        "beats": true
+      }
+    },
+    "step_50": {
+      "sse": {
+        "n": 241,
+        "mean": 0.6517238160502197,
+        "ci_low": 0.6071800585654658,
+        "ci_high": 0.6983134892070025,
+        "n_resamples": 10000,
+        "seed": 201,
+        "defined": true
+      },
+      "persistence_sse": {
+        "n": 241,
+        "mean": 2.8182977786155017,
+        "ci_low": 2.5834204911204006,
+        "ci_high": 3.061254396993826,
+        "n_resamples": 10000,
+        "seed": 211,
+        "defined": true
+      },
+      "cosine": {
+        "n": 241,
+        "mean": 0.8410242180319314,
+        "ci_low": 0.8256820061021977,
+        "ci_high": 0.8548009615885224,
+        "n_resamples": 10000,
+        "seed": 221,
+        "defined": true
+      },
+      "true_delta_norm": {
+        "n": 241,
+        "mean": 1.5896657647861574,
+        "ci_low": 1.5213333903831312,
+        "ci_high": 1.6586356442779955,
+        "n_resamples": 10000,
+        "seed": 231,
+        "defined": true
+      },
+      "predicted_delta_norm": {
+        "n": 241,
+        "mean": 1.3846068330607206,
+        "ci_low": 1.320367795018881,
+        "ci_high": 1.4496383724017334,
+        "n_resamples": 10000,
+        "seed": 241,
+        "defined": true
+      },
+      "inverse_mse": {
+        "n": 241,
+        "mean": 0.3952019098852433,
+        "ci_low": 0.3723205072337692,
+        "ci_high": 0.4192580957526024,
+        "n_resamples": 10000,
+        "seed": 251,
+        "defined": true
+      },
+      "beats_persistence": {
+        "n": 241,
+        "mean": 2.1665739625652822,
+        "ci_low": 1.9477782160529036,
+        "ci_high": 2.3877404624113563,
+        "n_resamples": 10000,
+        "seed": 261,
+        "beats": true
+      }
+    },
+    "mid": {
+      "sse": {
+        "n": 241,
+        "mean": 0.5097478618320729,
+        "ci_low": 0.4657382713003438,
+        "ci_high": 0.556030175146809,
+        "n_resamples": 10000,
+        "seed": 202,
+        "defined": true
+      },
+      "persistence_sse": {
+        "n": 241,
+        "mean": 1.6517957184821386,
+        "ci_low": 1.4803026073828176,
+        "ci_high": 1.8382283919715388,
+        "n_resamples": 10000,
+        "seed": 212,
+        "defined": true
+      },
+      "cosine": {
+        "n": 241,
+        "mean": 0.7765711987094357,
+        "ci_low": 0.7560840870013367,
+        "ci_high": 0.7962296651994741,
+        "n_resamples": 10000,
+        "seed": 222,
+        "defined": true
+      },
+      "true_delta_norm": {
+        "n": 241,
+        "mean": 1.187142577217571,
+        "ci_low": 1.1261698941416758,
+        "ci_high": 1.2505103794646317,
+        "n_resamples": 10000,
+        "seed": 232,
+        "defined": true
+      },
+      "predicted_delta_norm": {
+        "n": 241,
+        "mean": 0.9852043734971202,
+        "ci_low": 0.9318399012894208,
+        "ci_high": 1.03864426324377,
+        "n_resamples": 10000,
+        "seed": 242,
+        "defined": true
+      },
+      "inverse_mse": {
+        "n": 241,
+        "mean": 0.4307078844345951,
+        "ci_low": 0.4054374981107368,
+        "ci_high": 0.45655390736704915,
+        "n_resamples": 10000,
+        "seed": 252,
+        "defined": true
+      },
+      "beats_persistence": {
+        "n": 241,
+        "mean": 1.1420478566500656,
+        "ci_low": 0.9897309510673056,
+        "ci_high": 1.3063182812720489,
+        "n_resamples": 10000,
+        "seed": 262,
+        "beats": true
+      }
+    },
+    "last": {
+      "sse": {
+        "n": 241,
+        "mean": 0.569867460962521,
+        "ci_low": 0.5165957251051694,
+        "ci_high": 0.6289473117369659,
+        "n_resamples": 10000,
+        "seed": 203,
+        "defined": true
+      },
+      "persistence_sse": {
+        "n": 241,
+        "mean": 1.734404149657589,
+        "ci_low": 1.5608791104114366,
+        "ci_high": 1.929525743805267,
+        "n_resamples": 10000,
+        "seed": 213,
+        "defined": true
+      },
+      "cosine": {
+        "n": 241,
+        "mean": 0.7701699319930255,
+        "ci_low": 0.7485290015242008,
+        "ci_high": 0.790316968113032,
+        "n_resamples": 10000,
+        "seed": 223,
+        "defined": true
+      },
+      "true_delta_norm": {
+        "n": 241,
+        "mean": 1.2224503073853927,
+        "ci_low": 1.162225554053436,
+        "ci_high": 1.282891428461997,
+        "n_resamples": 10000,
+        "seed": 233,
+        "defined": true
+      },
+      "predicted_delta_norm": {
+        "n": 241,
+        "mean": 0.9965451428175737,
+        "ci_low": 0.9432831615777738,
+        "ci_high": 1.052101633132772,
+        "n_resamples": 10000,
+        "seed": 243,
+        "defined": true
+      },
+      "inverse_mse": {
+        "n": 241,
+        "mean": 0.45179433375597,
+        "ci_low": 0.4251020895263095,
+        "ci_high": 0.479201740837227,
+        "n_resamples": 10000,
+        "seed": 253,
+        "defined": true
+      },
+      "beats_persistence": {
+        "n": 241,
+        "mean": 1.1645366886950679,
+        "ci_low": 1.012287718316714,
+        "ci_high": 1.3283275601623552,
+        "n_resamples": 10000,
+        "seed": 263,
+        "beats": true
+      }
+    }
+  },
+  "anchor_start_sse": {
+    "n": 50,
+    "mean": 1.83835129553948,
+    "ci_low": 1.536350104938638,
+    "ci_high": 2.1806821470839806,
+    "n_resamples": 10000,
+    "seed": 280,
+    "defined": true
+  },
+  "same_action_cosine_ordinary": {
+    "n": 241,
+    "mean": 0.7959217829114641,
+    "ci_low": 0.7835440510990326,
+    "ci_high": 0.8079823836110426,
+    "n_resamples": 10000,
+    "seed": 270,
+    "defined": true
+  },
+  "cross_action": {
+    "recorded_sse": {
+      "n": 50,
+      "mean": 1.8390970238337456,
+      "ci_low": 1.5399767782527245,
+      "ci_high": 2.1835051951675117,
+      "n_resamples": 10000,
+      "seed": 290,
+      "defined": true
+    },
+    "recorded_cosine": {
+      "n": 50,
+      "mean": 0.7493675166909708,
+      "ci_low": 0.7083345465783001,
+      "ci_high": 0.7874048607116333,
+      "n_resamples": 10000,
+      "seed": 291,
+      "defined": true
+    },
+    "prediction_response_norm": {
+      "n": 50,
+      "mean": 1.841355727314949,
+      "ci_low": 1.5827868751734495,
+      "ci_high": 2.1072207953333857,
+      "n_resamples": 10000,
+      "seed": 292,
+      "defined": true
+    },
+    "cosine": {
+      "n": 50,
+      "mean": 0.6434762681655638,
+      "ci_low": 0.5999170492972482,
+      "ci_high": 0.6846534916662317,
+      "n_resamples": 10000,
+      "seed": 295,
+      "defined": true
+    },
+    "saved_rollout_max_abs": 2.4339860677719116,
+    "dataset_versus_render_sse": {
+      "n": 50,
+      "mean": 8.843640964098082,
+      "ci_low": 8.174601659822047,
+      "ci_high": 9.563240455525207,
+      "n_resamples": 10000,
+      "seed": 294,
+      "defined": true
+    }
+  },
+  "label": "A_evaluation_mismatch"
+}

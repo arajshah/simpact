@@ -648,7 +648,7 @@ def _rollout_from_images(model, transform, frames: np.ndarray, blocked_actions: 
     pixels = torch.cat([audit._policy_image(frame, transform) for frame in frames], dim=0)
     pixels = pixels.to(device)
     pixels = pixels.unsqueeze(0).unsqueeze(2)
-    actions = torch.as_tensor(blocked_actions, dtype=pixels.dtype, device=device).unsqueeze(0)
+    actions = audit.float_actions(blocked_actions, pixels).unsqueeze(0)
     with torch.inference_mode():
         rolled = model.rollout({"pixels": pixels}, actions)
     predicted = rolled["predicted_emb"][0, :, 1:, :]

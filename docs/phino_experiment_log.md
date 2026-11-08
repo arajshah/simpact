@@ -774,3 +774,33 @@ One raw action moves the hand by 7.2 mm. At five raw actions, recorded and autor
 **Limitations.** One checkpoint. The anchor episodes are inside the training file. The pose ball can miss a supported intervention that differs in one joint by more than 0.15 rad. Transplanted windows are expert strings from other poses, not an exhaustive set of actions that occurred at similar states. Teacher-forced steps later in these episodes are not a held-out episode.
 
 **Conclusion.** **STOP for a new representation objective.** The ranking failure is present on the stored expert continuation, not only on poorly supported actions, and it is present at the first action block. The encoder of the real future still ranks the goal. The forward update moves when the action moves, in a direction unrelated to that future. AnyGoal, SMWM, and Action Influence Maximization already describe weak or misdirected action effects under expert data. They do not by themselves say the expert continuation would be predicted as badly as a recombined one. That is what this bank shows. Do not train a new loss from this gap. Full write-up: [`docs/results/anygoal_ranking_mechanism_v1/report.md`](results/anygoal_ranking_mechanism_v1/report.md).
+
+## 2026-11-08: The orthogonal cosine was an action-dtype bug
+
+**Question.** Are SMWM's predicted latent changes really orthogonal to the encoded changes on recorded Insert-Peg transitions, or did the diagnostic compare a different action or a different target than the training step?
+
+**Hypothesis.** If the checkpoint fails its own forward loss, one-block error on recorded clips will sit at or above a persistence baseline and the same-action cosine will be near zero. If the diagnostic cast or rescaled the action, the official training step on the same frames will not reproduce the SSE of about 47.
+
+**Data and code.**
+- Same checkpoint, `sensorimotor_insertpeg.ckpt`, and the Insert-Peg training file. No new training.
+- `scripts/anygoal_training_contract.py` reconstructs `HDF5Dataset` clips with frameskip 5 and the trainer's unbiased action normalizer. Tests in `tests/test_anygoal_training_contract.py`.
+- The earlier 0.64 result is unchanged in `docs/results/anygoal_ranking_mechanism_v1/`. The correction is `docs/results/anygoal_training_contract_v1/`.
+
+**Protocol.** The training target is the projector embedding of the frame five raw actions later, from the same encoder. There is no EMA and no stop-gradient. Batch-norm running statistics are used in eval mode. 964 clips from 241 episodes cover the start, step 50, the middle, and the last valid clip. The saved bank is then rescored with float32 actions and, as a control, with the uint8 cast the diagnostic had been applying.
+
+**Results.** Projector and prediction-head batch-norm modules have each seen 46,300 batches. A hand-built window matches the official dataset pixels exactly and the normalized action to 1e-7. Rollout and `predict` differ by at most 0.0018.
+
+| Phase | Model SSE | Persistence SSE | Same-action cosine |
+|---|---:|---:|---:|
+| Start | 1.66 [1.55, 1.78] | 3.97 [3.70, 4.26] | 0.74 [0.72, 0.76] |
+| Step 50 | 0.65 [0.61, 0.70] | 2.82 [2.58, 3.06] | 0.84 [0.83, 0.85] |
+| Middle | 0.51 [0.47, 0.56] | 1.65 [1.48, 1.84] | 0.78 [0.76, 0.80] |
+| Last clip | 0.57 [0.52, 0.63] | 1.73 [1.56, 1.93] | 0.77 [0.75, 0.79] |
+
+Anchor starts are 1.84 [1.54, 2.18]. The cross-action cosine with the real normalized actions, against the rendered futures, is 0.64 [0.60, 0.68].
+
+The policy image is uint8. The diagnostic built the action tensor with that dtype. A normalized block beginning `[0.79, -1.07, 1.33, 1.40, -1.38]` became `[0, 255, 1, 1, 255]`. Repeating that cast matches the stored costs to 0.06 and reproduces regret 0.64 [0.50, 0.76]. Float32 actions give regret 0.12 [0.04, 0.22] and pair accuracy 0.96 [0.93, 0.98].
+
+**Limitations.** One checkpoint. The corrected regret is not zero; dataset frames and re-rendered frames still differ by SSE 8.84 [8.17, 9.56]. Inverse-action MSE on the normalized 25-d block is about 0.4 to 0.5. The 0.12 interval is wider than the observed-future regret of 0.06.
+
+**Conclusion.** **The orthogonal cosine was an evaluation bug.** The training forward pass on recorded transitions beats persistence and aligns with the encoded change, including at the initial pose. The 0.64 regret and the cosine of about −0.03 used actions that had been wrapped into uint8. Correcting the dtype removes that result. This is not a new failure of SMWM's forward objective, and it is not the action-ignoring mechanism in AnyGoal or Action Influence Maximization. Do not train a new loss from the uint8 numbers. Tell Hazel Nam and Petr Ivashkov that the Insert-Peg checkpoint's one-block predictions do align once the action is left in float32.

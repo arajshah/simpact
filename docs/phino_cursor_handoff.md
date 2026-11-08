@@ -231,9 +231,18 @@ The 0.64 predicted regret on the 50-episode Insert-Peg bank is a bad goal-cost o
 - The predicted latent moves with the action (transplant norm 2.92 versus perturbation norm 0.45) but the component along the true change is -0.10 [-0.26, 0.07].
 - **STOP.** Do not add a representation objective from this gap. The forward update's direction is wrong on transitions the training file already contains.
 
+## Milestone status: training-contract correction (done, Nov 8, 2026)
+
+The orthogonal cosine and the 0.64 regret were an action-dtype bug. The original tables stay in `docs/results/anygoal_ranking_mechanism_v1/`. The correction is `docs/results/anygoal_training_contract_v1/`.
+
+- The training target is the same encoder's projector embedding five raw actions later. No EMA and no stop-gradient. Batch-norm has 46,300 tracked batches. Pixels and the action normalizer match the official dataset.
+- On 964 recorded clips, one-block SSE is 1.66 at the start and 0.51–0.65 later, against persistence SSE of 3.97 and about 1.7–2.8. Same-action cosine is 0.74–0.84. Cross-action cosine with float32 actions is 0.64 [0.60, 0.68].
+- The diagnostic cast normalized actions to the uint8 image dtype. `[0.79, -1.07, 1.33, 1.40, -1.38]` became `[0, 255, 1, 1, 255]`. That cast reproduces the stored regret of 0.64. Float32 actions give regret 0.12 [0.04, 0.22] and pair accuracy 0.96 [0.93, 0.98].
+- **The forward model is not orthogonal to its training targets.** Do not train a new loss from the uint8 result.
+
 ## Next task
 
-Stop on the SMWM ranking gap. Do not train a new world-model loss, and do not rerun CEM on this bank. The goal-pose estimator is a separate unfinished check: offset-25 hand and object medians are still 2.9 cm and 5.2 cm, and that thread stays closed until both are inside 2 cm. The reciprocity study remains a NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
+Tell Hazel Nam and Petr Ivashkov that the Insert-Peg SMWM checkpoint's one-block predictions align with the encoded future once actions stay float32, and that our cosine of about −0.03 was a dtype cast. Do not train a new world-model loss and do not rerun CEM. The residual corrected regret is 0.12 [0.04, 0.22]; dataset frames and re-renders still differ by SSE about 8.8, which is a separate and smaller question. The goal-pose estimator remains unfinished at 2.9 cm and 5.2 cm. The reciprocity study remains a NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
 
 ## Handoff protocol
 

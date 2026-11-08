@@ -634,7 +634,7 @@ def _terminal_embeddings(model, transform, start_hwc, goal_hwc, final_hwc, block
     finals = torch.cat(
         [audit._policy_image(frame, transform) for frame in final_hwc], dim=0
     ).to(current.device)
-    actions = torch.as_tensor(blocked, dtype=current.dtype, device=current.device).unsqueeze(0)
+    actions = audit.float_actions(blocked, current).unsqueeze(0)
     n_samples = actions.shape[1]
     info = {
         "pixels": current[:, None, None].expand(1, n_samples, 1, *current.shape[1:]).contiguous(),

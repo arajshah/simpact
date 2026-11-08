@@ -238,6 +238,21 @@ def build_action_bank(
     return bank, meta
 
 
+def float_actions(actions, reference):
+    """Action tensors stay float32.
+
+    The policy image is uint8. Casting normalized actions to that dtype wraps
+    them into 0..255 and the forward model no longer sees the training action.
+    """
+    import torch
+
+    device = getattr(reference, "device", "cpu")
+    tensor = torch.as_tensor(np.asarray(actions), dtype=torch.float32, device=device)
+    if tensor.dtype != torch.float32:
+        raise RuntimeError(f"Actions must be float32, got {tensor.dtype}.")
+    return tensor
+
+
 def block_normalized_actions(raw_actions: np.ndarray, mean: np.ndarray, scale: np.ndarray) -> np.ndarray:
     """Normalize raw actions with the training scaler and group each 5-step block."""
     raw = np.asarray(raw_actions, dtype=np.float64)
@@ -797,7 +812,7 @@ def score_bank(model, transform, start_hwc, goal_hwc, final_hwc, blocked_actions
         [_policy_image(frame, transform) for frame in final_hwc],
         dim=0,
     ).to(current.device)
-    actions = torch.as_tensor(blocked_actions, dtype=current.dtype, device=current.device)
+    actions = float_actions(blocked_actions, current)
     actions = actions.unsqueeze(0)
     n_samples = actions.shape[1]
     info = {

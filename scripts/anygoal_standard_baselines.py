@@ -558,7 +558,7 @@ def run_short_horizon(anchor: Path, checkpoint: Path, anygoal_root: Path, output
 
             current = audit._policy_image(bank["start_image"][episode], transform)
             current = current.to(next(model.parameters()).device)
-            actions = torch.as_tensor(blocked, dtype=current.dtype, device=current.device).unsqueeze(0)
+            actions = audit.float_actions(blocked, current).unsqueeze(0)
             info = {
                 "pixels": current[:, None, None].expand(1, audit.N_CANDIDATES, 1, *current.shape[1:]).contiguous(),
             }
