@@ -1,6 +1,6 @@
 # SIMPACT → PHINO: Cursor agent handoff
 
-Updated: November 8, 2026, after the state-estimator diagnostic. This is the **working implementation handoff**, not a replacement for code/manifests. Keep it short and update it when a milestone changes.
+Updated: November 8, 2026, after the proprioceptive-arm baseline. This is the **working implementation handoff**, not a replacement for code/manifests. Keep it short and update it when a milestone changes.
 
 ## Goal and research boundary
 
@@ -203,9 +203,18 @@ DINOv2-B was trained on insert episodes 50–1299 with simulator-state labels. E
 - On the anchor, this estimate gives opportunity regret 0.48 [0.34, 0.62]. Restoring the true arm, and leaving the rest estimated, drops regret to 0.12 [0.04, 0.22]. True-state regret remains 0. Object-position noise of 5 cm on the true start leaves regret at 0.06.
 - **INCONCLUSIVE.** Estimated-state physics was not accurate enough to test the simulator. The 0.48 regret is the arm error, not a failure of known physics, and it is not a reason for a new learning objective.
 
+## Milestone status: proprioceptive arm baseline (done, Nov 8, 2026)
+
+SMWM's planner receives images only. The Insert-Peg environment already exposes joint positions, joint velocities, and a hand pose that matches forward kinematics to 1e-8 m. Object and slot state are privileged. Full write-up: `docs/phino_experiment_log.md`. Figure: `docs/results/anygoal_proprio_baseline_v1/`.
+
+- Using those current joint readings, a visual object estimate, and a goal pose read from the goal image, opportunity regret is 0.42 [0.28, 0.56]. Giving the goal pose directly, with the same measured arm and visual object, lowers it to 0.10 [0.02, 0.20].
+- The goal-image estimate is the residual: median hand 10.8 cm and object 9.4 cm, with 16 of 50 object estimates off by more than 20 cm. Replacing the object estimate with the truth does not remove that gap.
+- Episode starts are a different arm pose: 83% fall outside the central 90% of mixed-frame joint angles, and the hand is farther from the peg. Stored frames match a re-render to 2.7 gray levels.
+- **INCONCLUSIVE.** Measured joints plus physics are not a new learning problem. The untested piece is an accurate goal pose from the goal image.
+
 ## Next task
 
-Reach 2 cm median hand and object error on episode-start frames from episodes 1300–1460, without using episodes 0–49. Then rank the existing insert anchor with Insert-Peg physics from that estimate. Stop if the regret interval falls below 0.10. Do not train a new objective, and do not treat the current 11 cm hand error as that test. The reciprocity study remains a NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
+Estimate the goal pose from the goal image to 2 cm median hand and object error on held-out episodes outside 0–49, then repeat the measured-arm ranking. Stop if the regret interval falls below 0.10. Do not train a new objective, and do not spend the next run on estimating the current arm: the encoders already provide it. The reciprocity study remains a NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
 
 ## Handoff protocol
 

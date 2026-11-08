@@ -681,3 +681,35 @@ Restoring only the estimated object pose, object velocity, or slot target leaves
 - State labels are additional supervision. A success would not have meant SMWM had the same training signal.
 
 **Conclusion.** **INCONCLUSIVE.** The estimator does not reach 2 cm median hand and object error on the episode-start distribution the anchor uses, so estimated-state physics remains untested at the required accuracy. The error that dominates the descriptive ranking is the arm, not object position, object velocity, or the slot target. The true-state simulator still has regret 0. Do not treat this as evidence that a competent state estimate fails, and do not open a new learning objective. The next measurement is the same ranking after episode-start validation is actually inside 2 cm.
+
+## 2026-11-08: Proprioceptive arm plus physics
+
+**Question.** Are joint readings available to a conventional controller, and does using them, with vision only for the remaining state, remove SMWM's ranking failure?
+
+**Hypothesis.** If the robot exposes its encoders, the current arm does not have to be inferred from pixels. Regret should fall to about 0.10 when those readings initialize Insert-Peg physics and the object and goal are no worse than the errors already shown to be tolerable. If the goal image still cannot supply the goal pose, that remaining error is an inaccurate estimate, not a failure of physics given the true pose.
+
+**Data and code.**
+- Same 50-episode insert anchor, bank, and true-start outcomes as `a97b5c5` / `c0db08d`.
+- `scripts/anygoal_proprio_baseline.py` and `tests/test_anygoal_proprio_baseline.py`.
+- Current object estimate: the episode-start DINOv2 checkpoint. Goal estimate: the mixed-frame DINOv2 checkpoint. Both were fixed before this ranking and were not fit on episodes 0–49.
+- SMWM planning config `anygoal/resources/plan/sensorimotor/insert_peg.yaml` transforms `pixels` and `goal` only. `InsertPegEnv._info` returns `proprio` separately from `privilege`.
+
+**Protocol.** The measured start copies joint positions, joint velocities, and hand pose from the proprio field. Object pose, object velocity, and the slot target stay visual. The goal pose is the visual estimate with the hand recomputed by forward kinematics. A second row replaces that goal with the true goal pose and is labeled as a specified goal, not as an image-only result. Success is the saved true-start outcome.
+
+**Results.**
+- Forward kinematics reproduces the stored hand to a maximum of 1e-8 m on 20 anchor states. The first stored frame and a render from that state differ by 2.7 gray levels.
+- Of training episode starts, 83% have a joint outside the 5th–95th percentile of the mixed-frame sample. Median hand height is 46 cm at the start and 20 cm later. Median hand-to-peg distance is 41 cm at the start and 13 cm later.
+- Anchor visual errors at the start: hand 9.7 cm, object 6.4 cm, object angle 0.12 rad. At the goal image: hand 10.8 cm, object 9.4 cm, and 16 of 50 object estimates are more than 20 cm off (11 more than 40 cm).
+
+| Ranker | Success | Opportunity regret |
+|---|---:|---:|
+| True state | 0.84 | 0.00 [0.00, 0.00] |
+| Measured arm, visual object, true goal pose | 0.74 | 0.10 [0.02, 0.20] |
+| Measured arm, true object, visual goal | 0.46 | 0.38 [0.24, 0.52] |
+| Measured arm, visual object and visual goal | 0.42 | 0.42 [0.28, 0.56] |
+| Same, object velocity set to zero | 0.44 | 0.40 [0.26, 0.54] |
+| SMWM predicted cost | 0.20 | 0.64 [0.50, 0.76] |
+
+**Limitations.** The 0.10 result gives the goal pose directly. The AnyGoal interface is a goal image, and this estimator does not read that image well enough. The interval [0.02, 0.20] is wider than a tight pass of the 0.10 rule. One checkpoint pair. Proprioception is a different information tier from SMWM's images.
+
+**Conclusion.** **INCONCLUSIVE for a new objective.** Encoders and forward kinematics already supply the current arm, and SMWM does not use them. With that arm and a specified goal pose, regret is 0.10 [0.02, 0.20]. Reading the goal from the image leaves regret at 0.42 because 16 of 50 goal estimates are off by more than 20 cm. The next measurement is a goal-pose estimate that is actually inside 2 cm, followed by the same measured-arm ranking. Do not train another current-arm estimator, and do not open a new learning objective from this inaccurate goal estimate.
