@@ -1,6 +1,6 @@
 # SIMPACT → PHINO: Cursor agent handoff
 
-Updated: November 8, 2026, after the proprioceptive-arm baseline. This is the **working implementation handoff**, not a replacement for code/manifests. Keep it short and update it when a milestone changes.
+Updated: November 8, 2026, after the goal-pose readout. This is the **working implementation handoff**, not a replacement for code/manifests. Keep it short and update it when a milestone changes.
 
 ## Goal and research boundary
 
@@ -212,9 +212,17 @@ SMWM's planner receives images only. The Insert-Peg environment already exposes 
 - Episode starts are a different arm pose: 83% fall outside the central 90% of mixed-frame joint angles, and the hand is farther from the peg. Stored frames match a re-render to 2.7 gray levels.
 - **INCONCLUSIVE.** Measured joints plus physics are not a new learning problem. The untested piece is an accurate goal pose from the goal image.
 
+## Milestone status: goal-pose readout (done, Nov 8, 2026)
+
+The goal is the frame 25 steps after the start, from the same fixed side camera. The wrist origin is identifiable by inverting that camera and is not a visible geom, so the previous joint-based readout was the wrong route. A direct head on goal-offset frames, episodes 50–1299, validated at offset 25 on episodes 1300–1460, reaches 2.9 cm median hand error and 5.2 cm median object error. Full write-up: `docs/phino_experiment_log.md`. Figure: `docs/results/anygoal_goal_pose_v1/`.
+
+- With measured joints and that goal estimate, opportunity regret is 0.14 [0.06, 0.24], down from 0.42 with the old goal readout. The true-goal row is 0.06 [0.00, 0.14]. SMWM remains 0.64 [0.50, 0.76].
+- Substituting the true goal hand lowers regret to 0.08. Substituting the true goal object leaves it at 0.14. Fourteen of 50 anchor object estimates are still beyond 20 cm, and that tail is not what the ranking uses.
+- **INCONCLUSIVE.** The 2 cm checkpoint is not met. The gain shows the goal hand was the previous gap. It does not show that an accurate goal pose leaves physics failing.
+
 ## Next task
 
-Estimate the goal pose from the goal image to 2 cm median hand and object error on held-out episodes outside 0–49, then repeat the measured-arm ranking. Stop if the regret interval falls below 0.10. Do not train a new objective, and do not spend the next run on estimating the current arm: the encoders already provide it. The reciprocity study remains a NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
+The open measurement is the object tail and the last centimeter of goal-hand error on offset-25 validation, still without episodes 0–49. Repeat the measured-arm ranking only after both medians are inside 2 cm. Stop if the regret interval falls below 0.10. Do not train a current-arm estimator and do not open a new learning objective. The reciprocity study remains a NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
 
 ## Handoff protocol
 

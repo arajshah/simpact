@@ -713,3 +713,32 @@ Restoring only the estimated object pose, object velocity, or slot target leaves
 **Limitations.** The 0.10 result gives the goal pose directly. The AnyGoal interface is a goal image, and this estimator does not read that image well enough. The interval [0.02, 0.20] is wider than a tight pass of the 0.10 rule. One checkpoint pair. Proprioception is a different information tier from SMWM's images.
 
 **Conclusion.** **INCONCLUSIVE for a new objective.** Encoders and forward kinematics already supply the current arm, and SMWM does not use them. With that arm and a specified goal pose, regret is 0.10 [0.02, 0.20]. Reading the goal from the image leaves regret at 0.42 because 16 of 50 goal estimates are off by more than 20 cm. The next measurement is a goal-pose estimate that is actually inside 2 cm, followed by the same measured-arm ranking. Do not train another current-arm estimator, and do not open a new learning objective from this inaccurate goal estimate.
+
+## 2026-11-08: Goal pose from the goal image
+
+**Question.** Can the goal hand and peg poses be read from the goal image well enough that measured joints plus Insert-Peg physics remove SMWM's ranking gap?
+
+**Hypothesis.** The metric hand is the wrist origin. Rebuilding it from estimated joints was the previous error. Predicting the metric pose directly, on frames at the same 25-step offset as the goals, should reach 2 cm median hand and object error on episodes 1300–1460. If it does, the measured-arm ranking should fall to about 0.10. If it does not, the baseline stays untested.
+
+**Data and code.**
+- `scripts/anygoal_goal_pose.py`, tests in `tests/test_anygoal_goal_pose.py`.
+- Train: offsets 10, 20, 25, 30, and 40 on episodes 50–1299 (6,250 frames). Validation: offset 25 on episodes 1300–1460 (161 frames). Episodes 0–49 unused until the final ranking.
+- DINOv2-B initialized from the mixed-frame state estimator, last four blocks and a new 8-d head, 14 epochs, about 5 minutes on one L40. Labels are simulator hand and object poses. SMWM does not receive them.
+- The fixed camera is 16 m to the side with a 4-degree field of view, about 5 mm per pixel. Inverting it on the true wrist point is exact. The wrist-origin geom itself has no pixels. Stored frames match a re-render to about 2.7 gray levels.
+
+**Results.** Validation at offset 25: hand 2.9 cm median and 6.6 cm at the 90th percentile, hand angle 0.064 rad, object 5.2 cm median and 51 cm at the 90th percentile, object angle 0.079 rad. Anchor goal images, not used for selection: hand 3.4 cm median, no hand error above 20 cm, object 4.2 cm median, 14 of 50 object estimates above 20 cm.
+
+| Ranker | Success | Opportunity regret |
+|---|---:|---:|
+| True state | 0.84 | 0.00 [0.00, 0.00] |
+| Measured arm, visual object, true goal | 0.78 | 0.06 [0.00, 0.14] |
+| Measured arm, visual object, estimated goal | 0.70 | 0.14 [0.06, 0.24] |
+| True goal hand, estimated goal object | 0.76 | 0.08 [0.02, 0.16] |
+| Estimated goal hand, true goal object | 0.70 | 0.14 [0.06, 0.24] |
+| SMWM predicted cost | 0.20 | 0.64 [0.50, 0.76] |
+
+The current arm is measured proprioception, and object velocity at the start is set to zero. Replacing the estimated goal object does not change regret. Replacing the estimated goal hand accounts for the difference from the true-goal row.
+
+**Limitations.** Both medians are above 2 cm, so the pre-registered accuracy rule is not met. The object tail is large and, on this bank, unused by the ranking. One head and one offset neighborhood. This does not explain why SMWM's latent predictions rank poorly.
+
+**Conclusion.** **INCONCLUSIVE.** Direct goal-hand readout cuts the previous visual-goal regret from 0.42 to 0.14 [0.06, 0.24]. The interval still reaches 0.24, and the object estimate is not inside 2 cm. The true-goal pipeline with the same measured arm is at 0.06 [0.00, 0.14]. The residual above that line is the last few centimeters of goal-hand error. Do not treat the old 0.42 as a physics failure, and do not open a new learning objective. The same ranking should be repeated only after offset-25 validation is inside 2 cm for both hand and object.
