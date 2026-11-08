@@ -1,6 +1,6 @@
 # SIMPACT → PHINO: Cursor agent handoff
 
-Updated: November 8, 2026. This is the **working implementation handoff**, not a replacement for code/manifests. Keep it short and update it when a milestone changes.
+Updated: November 8, 2026, after the state-estimator diagnostic. This is the **working implementation handoff**, not a replacement for code/manifests. Keep it short and update it when a milestone changes.
 
 ## Goal and research boundary
 
@@ -195,9 +195,17 @@ The corrected Extract-Peg bank was rerun under the training integrator, 25 subst
 - A true-state Insert-Peg simulator has regret 0 on that bank. A 2000-step image policy, nearest-neighbor retrieval, and a small pose network do not beat uniform selection or the 2 cm pose bar. They are not competent equal-information baselines.
 - **NO-GO for a new learning objective.**
 
+## Milestone status: supervised visual state estimator (done, Nov 8, 2026)
+
+DINOv2-B was trained on insert episodes 50–1299 with simulator-state labels. Episodes 1300–1460 validated. Episodes 0–49 stayed untouched until the final bank ranking. Full write-up: `docs/phino_experiment_log.md`. Tables and the figure: `docs/results/anygoal_state_estimator_v1/`.
+
+- Mixed-frame validation reaches 4.9 cm hand and 4.5 cm object median error. Episode-start validation, which is the anchor's phase, stays at 11.0 cm and 6.7 cm. Object angle is about 0.13 rad. The 2 cm checkpoint is not met.
+- On the anchor, this estimate gives opportunity regret 0.48 [0.34, 0.62]. Restoring the true arm, and leaving the rest estimated, drops regret to 0.12 [0.04, 0.22]. True-state regret remains 0. Object-position noise of 5 cm on the true start leaves regret at 0.06.
+- **INCONCLUSIVE.** Estimated-state physics was not accurate enough to test the simulator. The 0.48 regret is the arm error, not a failure of known physics, and it is not a reason for a new learning objective.
+
 ## Next task
 
-Train an image-to-state estimator on insert episodes 50–1460, excluding the 50 anchor episodes, until held-out median hand and object error are at most 2 cm. Rank the existing insert anchor bank with Insert-Peg physics from that estimate. Stop if the regret interval falls below 0.10. Do not train a new objective, and do not treat a sub-2 cm failure of this small pose network as that test. The reciprocity study remains a NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
+Reach 2 cm median hand and object error on episode-start frames from episodes 1300–1460, without using episodes 0–49. Then rank the existing insert anchor with Insert-Peg physics from that estimate. Stop if the regret interval falls below 0.10. Do not train a new objective, and do not treat the current 11 cm hand error as that test. The reciprocity study remains a NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
 
 ## Handoff protocol
 

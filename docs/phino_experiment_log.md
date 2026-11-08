@@ -621,3 +621,63 @@ One model block on the same anchor, with the goal defined as the recorded action
 - Short-horizon and 25-step regrets answer different goals. Both are reported separately.
 
 **Conclusion.** Both the weld and the 25 ms action are required before this bank can reach the recorded Extract-Peg pose. The training integrator does not make that pose solvable, and the model's latent error does not improve reliably when that integrator is restored. The ranking failure itself is already present for Insert-Peg goals under the training integrator, at 25 steps and at one model block, while a true-state simulator ranks the 25-step bank with regret 0. The image baselines trained here do not meet the competence bar, so they do not show that a fair standard method fails. **NO-GO for a new learning objective.** The single next measurement is an image-to-state estimator that first reaches 2 cm held-out error on insert episodes outside the anchor, then ranks this same bank. A regret interval below 0.10 stops the diagnosis.
+
+## 2026-11-08: Supervised visual state estimation
+
+**Question.** Can a conventional image-to-state estimator, trained with simulator-state labels, plus Insert-Peg physics, remove SMWM's ranking failure on the 50-episode insert bank?
+
+**Hypothesis.** If the failure is only that SMWM does not recover a state the simulator can roll forward, an estimator with at most 2 cm median held-out hand and object error will rank the same bank at regret 0.10 or below. If the estimator never reaches that accuracy, the physics baseline is untested. State labels are extra supervision that SMWM does not get.
+
+**Data and code.**
+- Parent revision `a97b5c5`. Scripts: `scripts/anygoal_state_estimator.py`. Tests: `tests/test_anygoal_state_estimator.py`.
+- Train episodes 50–1299. Validation episodes 1300–1460. Evaluation episodes 0–49, used only for the final ranking. Normalization is fit on the training episodes.
+- Encoder: local DINOv2-B (`dinov2_vitb14_pretrain.pth`), then an MLP on the class token concatenated with the mean patch token. Head-only training, then the last four blocks, then all blocks. About 0.4 GPU-hour on one L40.
+- The first loss regressed raw quaternion components and averaged every dimension together. About 10% of nearby frames flip the quaternion sign, and that run left object angle at 1.17 rad. The reported model regresses sin and cos of the planar angle and averages the loss within each state group.
+- Commands write caches and checkpoints under `results/anygoal_state_estimator_v1/` locally. The committed summary is [`docs/results/anygoal_state_estimator_v1/`](results/anygoal_state_estimator_v1/).
+
+**Protocol.** Validation reports median and 90th percentile position, angle, joint, and velocity error after `set_state`, which recomputes the hand from the arm. A frame is counted as physically usable when both hand and object errors are under 5 cm. The bank ranking initializes Insert-Peg from the estimated start, compares the simulated terminal with the goal, and scores the chosen action by the saved true-start outcome. The estimated goal's hand pose is filled by forward kinematics; `set_state` does not read the hand coordinates. Model selection uses validation only.
+
+**Results.** Mixed-frame validation, 1,282 frames:
+
+| Quantity | Median | 90th percentile |
+|---|---:|---:|
+| Hand position | 4.9 cm | 16.1 cm |
+| Object position | 4.5 cm | 10.6 cm |
+| Target position | 2.8 cm | 6.0 cm |
+| Object angle | 0.096 rad | 0.29 rad |
+| Worst joint | 0.39 rad | 1.35 rad |
+| Both positions under 5 cm | 31% | |
+
+Episode-start validation, 161 frames, which is the anchor's phase:
+
+| Quantity | Median | 90th percentile |
+|---|---:|---:|
+| Hand position | 11.0 cm | 22.9 cm |
+| Object position | 6.7 cm | 13.3 cm |
+| Target position | 3.4 cm | 7.7 cm |
+| Object angle | 0.13 rad | 0.33 rad |
+| Worst joint | 0.91 rad | 2.07 rad |
+| Both positions under 5 cm | 7% | |
+
+The untouched anchor starts agree with that second row: hand 9.7 cm, object 6.4 cm, object angle 0.12 rad. Peg orientation is recovered. The initial arm pose is not.
+
+Anchor ranking. Success is the true-start outcome.
+
+| Ranker | Success | Opportunity regret |
+|---|---:|---:|
+| True state | 0.84 | 0.00 [0.00, 0.00] |
+| True pose, object velocity zero | 0.76 | 0.08 [0.02, 0.16] |
+| True arm, rest estimated | 0.72 | 0.12 [0.04, 0.22] |
+| Estimated start and goal | 0.36 | 0.48 [0.34, 0.62] |
+| Estimated start, true goal | 0.30 | 0.54 [0.40, 0.68] |
+| SMWM predicted cost | 0.20 | 0.64 [0.50, 0.76] |
+
+Restoring only the estimated object pose, object velocity, or slot target leaves regret at 0.46, 0.48, and 0.54. Restoring the arm is the substitution that moves the result. Anchor arm velocity is already zero. Gaussian noise on the true object's position, with the rest of the state true, gives regret 0.08, 0.10, 0.04, and 0.06 at 0.5, 1, 2, and 5 cm. A 2 cm object error would not have created SMWM's gap. The missing piece is the arm at the initial pose.
+
+**Limitations.**
+- One encoder family and one small training schedule. The episode-start finetune used 1,250 images and was still improving hand error at epoch 12, from 15.7 cm to 11.0 cm, while object error stayed near 6.7 cm.
+- Velocity at a single initial image is not a measurement. At these starts it is a small ranking effect.
+- The 0.48 regret uses an estimator that missed the 2 cm bar. It is reported so the arm diagnosis is concrete. It is not the pre-registered test of known physics.
+- State labels are additional supervision. A success would not have meant SMWM had the same training signal.
+
+**Conclusion.** **INCONCLUSIVE.** The estimator does not reach 2 cm median hand and object error on the episode-start distribution the anchor uses, so estimated-state physics remains untested at the required accuracy. The error that dominates the descriptive ranking is the arm, not object position, object velocity, or the slot target. The true-state simulator still has regret 0. Do not treat this as evidence that a competent state estimate fails, and do not open a new learning objective. The next measurement is the same ranking after episode-start validation is actually inside 2 cm.
