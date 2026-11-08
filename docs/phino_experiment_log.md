@@ -742,3 +742,35 @@ The current arm is measured proprioception, and object velocity at the start is 
 **Limitations.** Both medians are above 2 cm, so the pre-registered accuracy rule is not met. The object tail is large and, on this bank, unused by the ranking. One head and one offset neighborhood. This does not explain why SMWM's latent predictions rank poorly.
 
 **Conclusion.** **INCONCLUSIVE.** Direct goal-hand readout cuts the previous visual-goal regret from 0.42 to 0.14 [0.06, 0.24]. The interval still reaches 0.24, and the object estimate is not inside 2 cm. The true-goal pipeline with the same measured arm is at 0.06 [0.00, 0.14]. The residual above that line is the last few centimeters of goal-hand error. Do not treat the old 0.42 as a physics failure, and do not open a new learning objective. The same ranking should be repeated only after offset-25 validation is inside 2 cm for both hand and object.
+
+## 2026-11-08: Why the Insert-Peg predictions rank the wrong action
+
+**Question.** On the 50-episode Insert-Peg bank, SMWM's predicted goal cost has opportunity regret 0.64 and the same cost on the encoded future has regret 0.06. Are the wrong decisions concentrated on actions the training set does not support, and do they appear only after autoregressive rollout?
+
+**Hypothesis.** If the failure is missing coverage, prediction error and ranking error should sit on perturbed and transplanted sequences, and the recorded continuation — an exact training trajectory — should be ranked correctly when it succeeds. If the failure is accumulated rollout error, a one-block prediction from the true image should rank the 25-step outcome much better than the five-block rollout.
+
+**Data and code.**
+- Same anchor, bank, checkpoint, and saved terminal scores as `a97b5c5`. Episodes 0–49, start at the first stored frame, training integrator, 25-step recorded goal.
+- `scripts/anygoal_ranking_mechanism.py`, `scripts/run_anygoal_ranking_mechanism.sh`, tests in `tests/test_anygoal_ranking_mechanism.py`.
+- The seed-0 bank was rebuilt from the training file and matched the saved actions. Candidate 0 is that episode's own 25 actions. Candidates 1–7 are 0.1-standard-deviation perturbations. Candidates 8–15 are 25-step windows from the other 1,411 training episodes.
+- No new world model and no CEM. The horizon pass re-simulated the saved bank and matched its terminal states.
+
+**Protocol.** Prediction error is the sum of squared differences between the predicted embedding and the embedding of the simulated image. The decision label is the saved 25-step physical success. Opportunity regret, pair accuracy, and action-effect cosine use episode-level bootstrap intervals. A 5 cm / 0.15 rad pose ball is a screen for other training frames near the start. It is not treated as proof of support. One raw action is not a model prediction. The first valid horizon is one block of five actions. Teacher-forced predictions encode the true image at the previous block boundary.
+
+**Results.** The bank contains 50 observed continuations, 350 perturbed actions, and 400 recombined expert actions. Transplant source hands are 0.41 m from the anchor start at the median and 0.03 m at the minimum. No frame outside episodes 0–49 falls in the pose ball around an anchor start. The recorded trajectory leaves that ball; about 0.11 of its steps remain inside.
+
+| Group | Physical success | Prediction SSE | Predicted goal cost | Observed goal cost | Chosen by the prediction |
+|---|---:|---:|---:|---:|---:|
+| Recorded | 0.82 [0.70, 0.92] | 51.41 [46.09, 57.43] | 60.19 [54.16, 66.82] | 7.35 [6.68, 8.04] | 0.00 [0.00, 0.00] |
+| Perturbation | 0.72 [0.60, 0.82] | 51.92 [46.54, 58.00] | 60.73 [54.75, 67.25] | 7.62 [6.94, 8.33] | 0.22 [0.12, 0.34] |
+| Transplant | 0.00 [0.00, 0.00] | 52.52 [48.77, 56.38] | 60.40 [55.69, 64.97] | 43.87 [39.73, 48.08] | 0.78 [0.66, 0.88] |
+
+Transplant SSE minus recorded SSE is 1.11 [-3.74, 5.79]. On the 41 episodes where the recorded continuation succeeds, predicted regret is 0.76 [0.61, 0.88] and the recorded action is selected 0 times. Observed regret there is 0.05 [0.00, 0.12]. Predicted pair accuracy is 0.50 [0.41, 0.60]. Observed pair accuracy is 0.98 [0.96, 0.99]. Predicted regret exceeds uniform selection by 0.17 [0.06, 0.27].
+
+Perturbations move the encoded future by 0.51 [0.47, 0.55] and the prediction by 0.45 [0.34, 0.57]. Transplants move the encoded future by 5.90 [5.57, 6.23] and the prediction by 2.92 [2.80, 3.05]. The component of the predicted change along the actual change is -0.10 [-0.26, 0.07], and the cosine is -0.03 [-0.08, 0.02].
+
+One raw action moves the hand by 7.2 mm. At five raw actions, recorded and autoregressive error are the same number, 46.71, and transplant error is 47.80. Predicted regret against the 25-step outcome is already 0.74 [0.62, 0.86], with pair accuracy 0.46 [0.36, 0.56]. At 25 actions the autoregressive recorded error is 51.39 [46.02, 57.53] and the regret is 0.64 [0.50, 0.76]. Predicting the last block from the true image at step 20 still has recorded error 45.77 [40.19, 51.62]. Figure: [`ranking_mechanism.png`](results/anygoal_ranking_mechanism_v1/ranking_mechanism.png).
+
+**Limitations.** One checkpoint. The anchor episodes are inside the training file. The pose ball can miss a supported intervention that differs in one joint by more than 0.15 rad. Transplanted windows are expert strings from other poses, not an exhaustive set of actions that occurred at similar states. Teacher-forced steps later in these episodes are not a held-out episode.
+
+**Conclusion.** **STOP for a new representation objective.** The ranking failure is present on the stored expert continuation, not only on poorly supported actions, and it is present at the first action block. The encoder of the real future still ranks the goal. The forward update moves when the action moves, in a direction unrelated to that future. AnyGoal, SMWM, and Action Influence Maximization already describe weak or misdirected action effects under expert data. They do not by themselves say the expert continuation would be predicted as badly as a recombined one. That is what this bank shows. Do not train a new loss from this gap. Full write-up: [`docs/results/anygoal_ranking_mechanism_v1/report.md`](results/anygoal_ranking_mechanism_v1/report.md).

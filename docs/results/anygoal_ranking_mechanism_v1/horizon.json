@@ -1,0 +1,606 @@
+{
+  "definition": "Horizons are raw Insert-Peg actions. SMWM consumes them in blocks of five, so one raw action is not a model prediction. Autoregressive predictions start from the true first frame. Teacher predictions encode the true frame at the previous block boundary and predict one block. Goal costs compare a prediction with the encoded 25-step goal image. The 25-step physical success is the saved evaluator outcome.",
+  "one_raw_action_is_model_output": false,
+  "one_raw_action_hand_motion_m": {
+    "n": 50,
+    "mean": 0.007206616293600251,
+    "ci_low": 0.006640389812989011,
+    "ci_high": 0.0077800047144775146,
+    "n_resamples": 10000,
+    "seed": 135,
+    "defined": true
+  },
+  "blocks": [
+    {
+      "horizon_raw_actions": 5,
+      "valid_model_horizon": true,
+      "autoregressive_sse": {
+        "recorded": {
+          "n": 50,
+          "mean": 46.70723864082045,
+          "ci_low": 40.62343193372627,
+          "ci_high": 53.051022624243274,
+          "n_resamples": 10000,
+          "seed": 60,
+          "defined": true
+        },
+        "perturbation": {
+          "n": 50,
+          "mean": 46.53940162709691,
+          "ci_low": 40.57723852692287,
+          "ci_high": 52.61676759896983,
+          "n_resamples": 10000,
+          "seed": 60,
+          "defined": true
+        },
+        "transplant": {
+          "n": 50,
+          "mean": 47.79540288992768,
+          "ci_low": 43.79025474889867,
+          "ci_high": 51.815694991284964,
+          "n_resamples": 10000,
+          "seed": 60,
+          "defined": true
+        }
+      },
+      "teacher_sse": {
+        "recorded": {
+          "n": 50,
+          "mean": 46.70723864082045,
+          "ci_low": 40.59665073517676,
+          "ci_high": 53.12127754148701,
+          "n_resamples": 10000,
+          "seed": 70,
+          "defined": true
+        },
+        "perturbation": {
+          "n": 50,
+          "mean": 46.53940162709691,
+          "ci_low": 40.615014075574265,
+          "ci_high": 52.69416810788368,
+          "n_resamples": 10000,
+          "seed": 70,
+          "defined": true
+        },
+        "transplant": {
+          "n": 50,
+          "mean": 47.79540288992768,
+          "ci_low": 43.79436674875355,
+          "ci_high": 51.87909541276276,
+          "n_resamples": 10000,
+          "seed": 70,
+          "defined": true
+        }
+      },
+      "autoregressive_regret_vs_25_step_success": {
+        "n": 50,
+        "mean": 0.74,
+        "ci_low": 0.62,
+        "ci_high": 0.86,
+        "n_resamples": 10000,
+        "seed": 80,
+        "defined": true
+      },
+      "teacher_regret_vs_25_step_success": {
+        "n": 50,
+        "mean": 0.74,
+        "ci_low": 0.62,
+        "ci_high": 0.86,
+        "n_resamples": 10000,
+        "seed": 90,
+        "defined": true
+      },
+      "autoregressive_regret_on_recorded_successes": {
+        "n": 41,
+        "mean": 0.8780487804878049,
+        "ci_low": 0.7804878048780488,
+        "ci_high": 0.975609756097561,
+        "n_resamples": 10000,
+        "seed": 100,
+        "defined": true
+      },
+      "matched_pose_solvability": 1.0,
+      "matched_pose_candidates": 0.5275,
+      "autoregressive_regret_vs_matched_pose": {
+        "n": 50,
+        "mean": 0.84,
+        "ci_low": 0.74,
+        "ci_high": 0.94,
+        "n_resamples": 10000,
+        "seed": 110,
+        "defined": true
+      },
+      "pair_accuracy_vs_25_step_success": {
+        "n": 42,
+        "mean": 0.46096539042967616,
+        "ci_low": 0.3632739344402291,
+        "ci_high": 0.5637404223174312,
+        "n_resamples": 10000,
+        "seed": 120,
+        "defined": true
+      },
+      "effect_cosine": {
+        "n": 50,
+        "mean": -0.025515710782155265,
+        "ci_low": -0.07090806281635882,
+        "ci_high": 0.019427055067231254,
+        "n_resamples": 10000,
+        "seed": 130,
+        "defined": true
+      },
+      "effect_predicted_norm": {
+        "n": 50,
+        "mean": 3.332207532954633,
+        "ci_low": 3.000479004272715,
+        "ci_high": 3.706849421300967,
+        "n_resamples": 10000,
+        "seed": 131,
+        "defined": true
+      },
+      "effect_observed_norm": {
+        "n": 50,
+        "mean": 2.092221094819434,
+        "ci_low": 1.9909334112999968,
+        "ci_high": 2.202186245822521,
+        "n_resamples": 10000,
+        "seed": 132,
+        "defined": true
+      }
+    },
+    {
+      "horizon_raw_actions": 10,
+      "valid_model_horizon": true,
+      "autoregressive_sse": {
+        "recorded": {
+          "n": 50,
+          "mean": 52.127521364428176,
+          "ci_low": 46.286136398711776,
+          "ci_high": 58.10760784593788,
+          "n_resamples": 10000,
+          "seed": 61,
+          "defined": true
+        },
+        "perturbation": {
+          "n": 50,
+          "mean": 52.53672519874497,
+          "ci_low": 46.4680792721646,
+          "ci_high": 58.67841117988464,
+          "n_resamples": 10000,
+          "seed": 61,
+          "defined": true
+        },
+        "transplant": {
+          "n": 50,
+          "mean": 51.45923896480181,
+          "ci_low": 47.340156652389126,
+          "ci_high": 55.616744738453534,
+          "n_resamples": 10000,
+          "seed": 61,
+          "defined": true
+        }
+      },
+      "teacher_sse": {
+        "recorded": {
+          "n": 50,
+          "mean": 49.497237743844764,
+          "ci_low": 43.792395601993334,
+          "ci_high": 55.453392711038596,
+          "n_resamples": 10000,
+          "seed": 71,
+          "defined": true
+        },
+        "perturbation": {
+          "n": 50,
+          "mean": 49.848732504867186,
+          "ci_low": 44.08475564929296,
+          "ci_high": 55.88734059427879,
+          "n_resamples": 10000,
+          "seed": 71,
+          "defined": true
+        },
+        "transplant": {
+          "n": 50,
+          "mean": 47.999334095618686,
+          "ci_low": 44.19857760852394,
+          "ci_high": 51.87978007755249,
+          "n_resamples": 10000,
+          "seed": 71,
+          "defined": true
+        }
+      },
+      "autoregressive_regret_vs_25_step_success": {
+        "n": 50,
+        "mean": 0.76,
+        "ci_low": 0.64,
+        "ci_high": 0.88,
+        "n_resamples": 10000,
+        "seed": 81,
+        "defined": true
+      },
+      "teacher_regret_vs_25_step_success": {
+        "n": 50,
+        "mean": 0.76,
+        "ci_low": 0.64,
+        "ci_high": 0.88,
+        "n_resamples": 10000,
+        "seed": 91,
+        "defined": true
+      },
+      "autoregressive_regret_on_recorded_successes": {
+        "n": 41,
+        "mean": 0.9024390243902439,
+        "ci_low": 0.8048780487804879,
+        "ci_high": 0.975609756097561,
+        "n_resamples": 10000,
+        "seed": 101,
+        "defined": true
+      },
+      "matched_pose_solvability": 1.0,
+      "matched_pose_candidates": 0.47625,
+      "autoregressive_regret_vs_matched_pose": {
+        "n": 50,
+        "mean": 0.92,
+        "ci_low": 0.84,
+        "ci_high": 0.98,
+        "n_resamples": 10000,
+        "seed": 111,
+        "defined": true
+      },
+      "pair_accuracy_vs_25_step_success": {
+        "n": 42,
+        "mean": 0.5180289370021514,
+        "ci_low": 0.4292650894492413,
+        "ci_high": 0.6065360881264898,
+        "n_resamples": 10000,
+        "seed": 121,
+        "defined": true
+      }
+    },
+    {
+      "horizon_raw_actions": 15,
+      "valid_model_horizon": true,
+      "autoregressive_sse": {
+        "recorded": {
+          "n": 50,
+          "mean": 48.27622916411265,
+          "ci_low": 42.94035404246648,
+          "ci_high": 53.727223438905305,
+          "n_resamples": 10000,
+          "seed": 62,
+          "defined": true
+        },
+        "perturbation": {
+          "n": 50,
+          "mean": 48.61110983063441,
+          "ci_low": 43.02840301092915,
+          "ci_high": 54.285173278876215,
+          "n_resamples": 10000,
+          "seed": 62,
+          "defined": true
+        },
+        "transplant": {
+          "n": 50,
+          "mean": 51.470247584518766,
+          "ci_low": 47.553329620812505,
+          "ci_high": 55.36108408248584,
+          "n_resamples": 10000,
+          "seed": 62,
+          "defined": true
+        }
+      },
+      "teacher_sse": {
+        "recorded": {
+          "n": 50,
+          "mean": 42.897775829101185,
+          "ci_low": 36.98872827578763,
+          "ci_high": 48.73271483535317,
+          "n_resamples": 10000,
+          "seed": 72,
+          "defined": true
+        },
+        "perturbation": {
+          "n": 50,
+          "mean": 43.60306904907329,
+          "ci_low": 37.699158410544925,
+          "ci_high": 49.3860859500377,
+          "n_resamples": 10000,
+          "seed": 72,
+          "defined": true
+        },
+        "transplant": {
+          "n": 50,
+          "mean": 48.27982864304414,
+          "ci_low": 44.82698430528938,
+          "ci_high": 51.785558709622165,
+          "n_resamples": 10000,
+          "seed": 72,
+          "defined": true
+        }
+      },
+      "autoregressive_regret_vs_25_step_success": {
+        "n": 50,
+        "mean": 0.8,
+        "ci_low": 0.68,
+        "ci_high": 0.9,
+        "n_resamples": 10000,
+        "seed": 82,
+        "defined": true
+      },
+      "teacher_regret_vs_25_step_success": {
+        "n": 50,
+        "mean": 0.74,
+        "ci_low": 0.62,
+        "ci_high": 0.86,
+        "n_resamples": 10000,
+        "seed": 92,
+        "defined": true
+      },
+      "autoregressive_regret_on_recorded_successes": {
+        "n": 41,
+        "mean": 0.9512195121951219,
+        "ci_low": 0.8780487804878049,
+        "ci_high": 1.0,
+        "n_resamples": 10000,
+        "seed": 102,
+        "defined": true
+      },
+      "matched_pose_solvability": 1.0,
+      "matched_pose_candidates": 0.46,
+      "autoregressive_regret_vs_matched_pose": {
+        "n": 50,
+        "mean": 0.94,
+        "ci_low": 0.86,
+        "ci_high": 1.0,
+        "n_resamples": 10000,
+        "seed": 112,
+        "defined": true
+      },
+      "pair_accuracy_vs_25_step_success": {
+        "n": 42,
+        "mean": 0.5039569887784173,
+        "ci_low": 0.4165243959496191,
+        "ci_high": 0.5879603329045293,
+        "n_resamples": 10000,
+        "seed": 122,
+        "defined": true
+      }
+    },
+    {
+      "horizon_raw_actions": 20,
+      "valid_model_horizon": true,
+      "autoregressive_sse": {
+        "recorded": {
+          "n": 50,
+          "mean": 49.41534968563789,
+          "ci_low": 44.59371916928622,
+          "ci_high": 54.683241415254784,
+          "n_resamples": 10000,
+          "seed": 63,
+          "defined": true
+        },
+        "perturbation": {
+          "n": 50,
+          "mean": 49.35099272259468,
+          "ci_low": 44.48622572873179,
+          "ci_high": 54.65552377005891,
+          "n_resamples": 10000,
+          "seed": 63,
+          "defined": true
+        },
+        "transplant": {
+          "n": 50,
+          "mean": 52.173045918599406,
+          "ci_low": 48.41082510075433,
+          "ci_high": 56.04270508075077,
+          "n_resamples": 10000,
+          "seed": 63,
+          "defined": true
+        }
+      },
+      "teacher_sse": {
+        "recorded": {
+          "n": 50,
+          "mean": 45.28173795934825,
+          "ci_low": 39.894240725884195,
+          "ci_high": 50.90038514268054,
+          "n_resamples": 10000,
+          "seed": 73,
+          "defined": true
+        },
+        "perturbation": {
+          "n": 50,
+          "mean": 45.06677191505812,
+          "ci_low": 39.727286065709606,
+          "ci_high": 50.54303221892585,
+          "n_resamples": 10000,
+          "seed": 73,
+          "defined": true
+        },
+        "transplant": {
+          "n": 50,
+          "mean": 48.77791991431319,
+          "ci_low": 45.437708575232755,
+          "ci_high": 52.16453016428385,
+          "n_resamples": 10000,
+          "seed": 73,
+          "defined": true
+        }
+      },
+      "autoregressive_regret_vs_25_step_success": {
+        "n": 50,
+        "mean": 0.7,
+        "ci_low": 0.58,
+        "ci_high": 0.82,
+        "n_resamples": 10000,
+        "seed": 83,
+        "defined": true
+      },
+      "teacher_regret_vs_25_step_success": {
+        "n": 50,
+        "mean": 0.72,
+        "ci_low": 0.6,
+        "ci_high": 0.84,
+        "n_resamples": 10000,
+        "seed": 93,
+        "defined": true
+      },
+      "autoregressive_regret_on_recorded_successes": {
+        "n": 41,
+        "mean": 0.8292682926829268,
+        "ci_low": 0.7073170731707317,
+        "ci_high": 0.926829268292683,
+        "n_resamples": 10000,
+        "seed": 103,
+        "defined": true
+      },
+      "matched_pose_solvability": 1.0,
+      "matched_pose_candidates": 0.45,
+      "autoregressive_regret_vs_matched_pose": {
+        "n": 50,
+        "mean": 0.86,
+        "ci_low": 0.76,
+        "ci_high": 0.94,
+        "n_resamples": 10000,
+        "seed": 113,
+        "defined": true
+      },
+      "pair_accuracy_vs_25_step_success": {
+        "n": 42,
+        "mean": 0.5710295656724228,
+        "ci_low": 0.4880680199430199,
+        "ci_high": 0.6549054587112623,
+        "n_resamples": 10000,
+        "seed": 123,
+        "defined": true
+      }
+    },
+    {
+      "horizon_raw_actions": 25,
+      "valid_model_horizon": true,
+      "autoregressive_sse": {
+        "recorded": {
+          "n": 50,
+          "mean": 51.39282146860793,
+          "ci_low": 45.929157967861975,
+          "ci_high": 57.37392496800932,
+          "n_resamples": 10000,
+          "seed": 64,
+          "defined": true
+        },
+        "perturbation": {
+          "n": 50,
+          "mean": 51.90767357211757,
+          "ci_low": 46.384247967052026,
+          "ci_high": 57.9388875515262,
+          "n_resamples": 10000,
+          "seed": 64,
+          "defined": true
+        },
+        "transplant": {
+          "n": 50,
+          "mean": 52.50712652461473,
+          "ci_low": 48.67215716222771,
+          "ci_high": 56.320393143578514,
+          "n_resamples": 10000,
+          "seed": 64,
+          "defined": true
+        }
+      },
+      "teacher_sse": {
+        "recorded": {
+          "n": 50,
+          "mean": 45.7661539257983,
+          "ci_low": 40.192605434686506,
+          "ci_high": 51.617312170160986,
+          "n_resamples": 10000,
+          "seed": 74,
+          "defined": true
+        },
+        "perturbation": {
+          "n": 50,
+          "mean": 46.31933551575925,
+          "ci_low": 40.830614422209315,
+          "ci_high": 52.14096084074272,
+          "n_resamples": 10000,
+          "seed": 74,
+          "defined": true
+        },
+        "transplant": {
+          "n": 50,
+          "mean": 49.87010238953444,
+          "ci_low": 46.41343949359138,
+          "ci_high": 53.416962441530295,
+          "n_resamples": 10000,
+          "seed": 74,
+          "defined": true
+        }
+      },
+      "autoregressive_regret_vs_25_step_success": {
+        "n": 50,
+        "mean": 0.64,
+        "ci_low": 0.5,
+        "ci_high": 0.76,
+        "n_resamples": 10000,
+        "seed": 84,
+        "defined": true
+      },
+      "teacher_regret_vs_25_step_success": {
+        "n": 50,
+        "mean": 0.72,
+        "ci_low": 0.6,
+        "ci_high": 0.84,
+        "n_resamples": 10000,
+        "seed": 94,
+        "defined": true
+      },
+      "autoregressive_regret_on_recorded_successes": {
+        "n": 41,
+        "mean": 0.7560975609756098,
+        "ci_low": 0.6097560975609756,
+        "ci_high": 0.8780487804878049,
+        "n_resamples": 10000,
+        "seed": 104,
+        "defined": true
+      },
+      "matched_pose_solvability": 1.0,
+      "matched_pose_candidates": 0.42125,
+      "autoregressive_regret_vs_matched_pose": {
+        "n": 50,
+        "mean": 0.78,
+        "ci_low": 0.66,
+        "ci_high": 0.88,
+        "n_resamples": 10000,
+        "seed": 114,
+        "defined": true
+      },
+      "pair_accuracy_vs_25_step_success": {
+        "n": 42,
+        "mean": 0.5040179479911623,
+        "ci_low": 0.40728559118626084,
+        "ci_high": 0.6010689211582068,
+        "n_resamples": 10000,
+        "seed": 124,
+        "defined": true
+      }
+    }
+  ],
+  "accumulation_conclusion": "present_at_first_block",
+  "recorded_first_block_sse": {
+    "n": 50,
+    "mean": 46.70723864082045,
+    "ci_low": 40.62895951209204,
+    "ci_high": 53.143431937385245,
+    "n_resamples": 10000,
+    "seed": 133,
+    "defined": true
+  },
+  "recorded_final_block_sse": {
+    "n": 50,
+    "mean": 51.39282146860793,
+    "ci_low": 46.0225997264268,
+    "ci_high": 57.52846725681978,
+    "n_resamples": 10000,
+    "seed": 134,
+    "defined": true
+  }
+}

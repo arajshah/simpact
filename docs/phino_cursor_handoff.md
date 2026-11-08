@@ -220,9 +220,20 @@ The goal is the frame 25 steps after the start, from the same fixed side camera.
 - Substituting the true goal hand lowers regret to 0.08. Substituting the true goal object leaves it at 0.14. Fourteen of 50 anchor object estimates are still beyond 20 cm, and that tail is not what the ranking uses.
 - **INCONCLUSIVE.** The 2 cm checkpoint is not met. The gain shows the goal hand was the previous gap. It does not show that an accurate goal pose leaves physics failing.
 
+## Milestone status: Insert-Peg ranking mechanism (done, Nov 8, 2026)
+
+The 0.64 predicted regret on the 50-episode Insert-Peg bank is a bad goal-cost ordering, already at the first action block, including on the stored expert continuation. Full write-up: `docs/phino_experiment_log.md`. Report and figure: `docs/results/anygoal_ranking_mechanism_v1/`.
+
+- Recorded, perturbed, and transplanted sequences have prediction SSE 51.41, 51.92, and 52.52. The paired transplant-minus-recorded gap is 1.11 [-3.74, 5.79]. Observed goal cost separates them (7.35 and 7.62 versus 43.87). Predicted goal cost does not (60.19, 60.73, 60.40).
+- On the 41 episodes where the recorded continuation succeeds, predicted regret is 0.76 [0.61, 0.88] and that continuation is selected 0 times. Predicted pair accuracy is 0.50 [0.41, 0.60]. Observed pair accuracy is 0.98 [0.96, 0.99]. Predicted regret is 0.17 [0.06, 0.27] worse than uniform selection.
+- No frame outside episodes 0–49 lies in a 5 cm / 0.15 rad ball around an anchor start. That emptiness is not the error: the same SSE is measured on the exact stored continuation.
+- One block of five actions already has regret 0.74 [0.62, 0.86]. Five-block autoregressive error on the recorded action is 51.39, against 46.71 at the first block. Predicting the last block from the true image at step 20 still has error 45.77.
+- The predicted latent moves with the action (transplant norm 2.92 versus perturbation norm 0.45) but the component along the true change is -0.10 [-0.26, 0.07].
+- **STOP.** Do not add a representation objective from this gap. The forward update's direction is wrong on transitions the training file already contains.
+
 ## Next task
 
-The open measurement is the object tail and the last centimeter of goal-hand error on offset-25 validation, still without episodes 0–49. Repeat the measured-arm ranking only after both medians are inside 2 cm. Stop if the regret interval falls below 0.10. Do not train a current-arm estimator and do not open a new learning objective. The reciprocity study remains a NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
+Stop on the SMWM ranking gap. Do not train a new world-model loss, and do not rerun CEM on this bank. The goal-pose estimator is a separate unfinished check: offset-25 hand and object medians are still 2.9 cm and 5.2 cm, and that thread stays closed until both are inside 2 cm. The reciprocity study remains a NO-GO, and R1–R6 are still required before any new rigid-body SIMPACT protocol.
 
 ## Handoff protocol
 
